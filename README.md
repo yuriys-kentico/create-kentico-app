@@ -1,1 +1,3 @@
-create-kentico-app
+# create-kentico-app
+
+Easily start a Kentico project.
