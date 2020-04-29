@@ -1,19 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-
-using System.Security.AccessControl;
 
 using App.Core;
 using App.Core.Models;
 using App.Core.Services;
 
 using static App.Install.Constants;
+using static App.Install.InstallHelper;
 
 namespace App.Install
 {
@@ -24,19 +23,19 @@ namespace App.Install
         private readonly IOutputService output;
         private readonly ICacheService cache;
         private readonly Func<IProcessService> process;
-        private readonly IHotfixTask hotfixTask;
+        private readonly IDatabaseService database;
         private readonly HttpClient httpClient;
 
-        private IDictionary<Version, string> VersionUris => new Dictionary<Version, string>
-        {
-            {new Version(12,0,0),  "https://download.kentico.com/Kentico_12_0.exe"}
-        };
+        private Func<Version, string> VersionUri => version => $"https://download.kentico.com/Kentico_{version.Major}_{version.Minor}.exe";
+
+        private Func<Version, string> SetupPath => version => @$"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Kentico\{version.Major}.{version.Minor}";
+
+        private Func<string, string> AppPath => appFolderName => @$"C:\inetpub\wwwroot\{appFolderName}";
 
         public InstallTask(
             Settings settings,
             Terms terms,
             Services services,
-            IHotfixTask hotfixTask,
             HttpClient httpClient
             )
         {
@@ -45,7 +44,7 @@ namespace App.Install
             output = services.OutputService();
             cache = services.CacheService();
             process = services.ProcessService;
-            this.hotfixTask = hotfixTask;
+            database = services.DatabaseService();
             this.httpClient = httpClient;
         }
 
@@ -54,8 +53,11 @@ namespace App.Install
             output.Display(terms.InstallTaskStart);
 
             settings.AppName = settings.AppName ?? throw new ArgumentException($"'{nameof(settings.AppName)}' must be set!");
+            settings.AppPath ??= AppPath(settings.AppName);
+            settings.AppPath = EnsureValidAppPath(settings.AppPath);
 
             settings.DbName ??= settings.AppName;
+            settings.DbName = await EnsureValidDatabaseName(settings.DbName);
 
             if (settings.Version == null)
             {
@@ -65,8 +67,7 @@ namespace App.Install
                 settings.Version = new Version(12, 0, UnspecifiedHotfix);
             }
 
-            var versionPair = VersionUris.First(pair => pair.Key.Major == settings.Version.Major);
-            var versionUri = versionPair.Value;
+            var versionUri = VersionUri(settings.Version);
 
             var installDownloadPath = await cache.GetString(versionUri);
 
@@ -74,7 +75,7 @@ namespace App.Install
             {
                 installDownloadPath = Path.GetTempFileName();
 
-                await DownloadFile(versionUri, installDownloadPath);
+                await DownloadFile(httpClient, versionUri, installDownloadPath, output, terms.Downloading);
                 await cache.SetString(versionUri, installDownloadPath);
 
                 output.Display(terms.DownloadComplete);
@@ -86,13 +87,11 @@ namespace App.Install
 
             var installXmlPath = Path.GetTempFileName();
             var installLogPath = Path.GetTempFileName();
-            var setupPath = @$"{{%programfiles%}}\Kentico\{versionPair.Key.Major}.{versionPair.Key.Minor}";
-
-            settings.AppPath ??= @$"C:\inetpub\wwwroot\{settings.AppName}";
+            var setupPath = SetupPath(settings.Version);
 
             SetPermissions(settings.AppPath, WellKnownSidType.NetworkServiceSid, FileSystemRights.Modify);
 
-            await WriteInstallXml(installXmlPath, installLogPath, setupPath);
+            await WriteInstallXml(installXmlPath, installLogPath, setupPath, settings.AppPath, settings.Version);
 
             output.Display(terms.BeginInstallOutput);
 
@@ -123,53 +122,41 @@ namespace App.Install
                         .WithArguments($"{Path.GetFileName(installXmlPath)}")
                         .Run();
                 }
-            }
-            else if (DateTime.Now - installProcess.StartTime > TimeSpan.FromSeconds(10))
-            {
-                throw new Exception("Install process failed!");
+                else
+                {
+                    throw new Exception("Install process failed!");
+                }
             }
 
             if (installProcess.ExitCode == 1) throw new Exception("Install after uninstall process failed!");
-
-            await hotfixTask.Run();
-
-            output.Display(terms.InstallComplete);
-            output.Display(string.Format(terms.SolutionPath, settings.AppPath));
-            output.Display(string.Format(terms.WebPath, settings.AppWebPath));
         }
 
-        private async Task DownloadFile(string requestUri, string downloadPath)
+        private async Task<string> EnsureValidDatabaseName(string dbName)
         {
-            using var response = await httpClient.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead);
+            var databases = await database.Query("select name from sys.databases");
 
-            response.EnsureSuccessStatusCode();
-
-            var progressBar = output.ProgressBar((int?)response.Content.Headers.ContentLength ?? 0, terms.Downloading);
-
-            var buffer = new byte[8192];
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true);
-
-            while (true)
+            if (databases.Any(database => dbName.Equals(database.name)))
             {
-                var readBytes = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-
-                if (readBytes > 0)
-                {
-                    await fileStream.WriteAsync(buffer, 0, readBytes);
-
-                    output.UpdateProgress(progressBar, readBytes);
-                }
-                else
-                {
-                    break;
-                }
+                dbName += $"_{GetRandomString(10)}";
             }
+
+            return dbName;
+        }
+
+        private string EnsureValidAppPath(string appPath)
+        {
+            if (Directory.Exists(appPath) && Directory.EnumerateFileSystemEntries(appPath).Any())
+            {
+                appPath += $"_{GetRandomString(10)}";
+            }
+
+            Directory.CreateDirectory(appPath);
+            return appPath;
         }
 
         private void SetPermissions(string path, WellKnownSidType sid, FileSystemRights fileSystemRights)
         {
-            var directory = Directory.CreateDirectory(path);
+            var directory = new DirectoryInfo(path);
             var security = directory.GetAccessControl(AccessControlSections.Access);
 
             security.AddAccessRule(new FileSystemAccessRule(
@@ -180,7 +167,7 @@ namespace App.Install
             directory.SetAccessControl(security);
         }
 
-        private async Task WriteInstallXml(string installXmlPath, string installLogPath, string setupPath)
+        private async Task WriteInstallXml(string installXmlPath, string installLogPath, string setupPath, string appPath, Version version)
         {
             var installXml = new XDocument(
                 new XElement("SilentInstall",
@@ -189,17 +176,10 @@ namespace App.Install
                     new XAttribute("OnError", "Stop"),
                     new XAttribute("LogFile", installLogPath),
                     new XAttribute("CheckRequirements", true),
-                    new XElement("Setup",
-                        new XAttribute("NET", "4.6.1"),
-                        new XAttribute("SetupFolder", setupPath),
-                        new XAttribute("DevelopmentModel", "MVC"),
-                        new XAttribute("WebProject", "WebApplication"),
-                        new XAttribute("OpenAfterInstall", false),
-                        new XAttribute("RegisterToIIS", false)
-                    ),
+                    GetSetupElement(version, setupPath),
                     new XElement("IIS",
                         new XAttribute("Website", string.Empty),
-                        new XAttribute("TargetFolder", settings.AppPath),
+                        new XAttribute("TargetFolder", appPath),
                         new XAttribute("KillRunningProcesses", true)
                     ),
                     new XElement("Sql",
@@ -223,6 +203,36 @@ namespace App.Install
             );
 
             await File.WriteAllTextAsync(installXmlPath, installXml.ToString());
+        }
+
+        private XElement GetSetupElement(Version version, string setupPath)
+        {
+            return version.Major switch
+            {
+                10 => new XElement("Setup",
+                        new XAttribute("NET", "4.6"),
+                        new XAttribute("SetupFolder", setupPath),
+                        new XAttribute("Location", "VisualStudio"),
+                        new XAttribute("WebProject", "WebApplication"),
+                        new XAttribute("OpenAfterInstall", false)
+                    ),
+                11 => new XElement("Setup",
+                        new XAttribute("NET", "4.7"),
+                        new XAttribute("SetupFolder", setupPath),
+                        new XAttribute("Location", "VisualStudio"),
+                        new XAttribute("WebProject", "WebApplication"),
+                        new XAttribute("OpenAfterInstall", false)
+                    ),
+                12 => new XElement("Setup",
+                        new XAttribute("NET", "4.8"),
+                        new XAttribute("SetupFolder", setupPath),
+                        new XAttribute("DevelopmentModel", "MVC"),
+                        new XAttribute("WebProject", "WebApplication"),
+                        new XAttribute("OpenAfterInstall", false),
+                        new XAttribute("RegisterToIIS", false)
+                    ),
+                _ => throw new ArgumentOutOfRangeException($"Version '{version.Major}' has no supported XML configuration."),
+            };
         }
     }
 }

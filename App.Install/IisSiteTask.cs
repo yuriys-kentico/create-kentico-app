@@ -13,6 +13,7 @@ using App.Core.Services;
 using Microsoft.Web.Administration;
 
 using static App.Install.Constants;
+using static App.Install.InstallHelper;
 
 namespace App.Install
 {
@@ -22,6 +23,8 @@ namespace App.Install
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly ICacheService cache;
+
+        private Func<string, string> AppPath => appFolderName => @$"C:\inetpub\wwwroot\{appFolderName}";
 
         public IisSiteTask(
             Settings settings,
@@ -37,11 +40,13 @@ namespace App.Install
 
         public async Task Run()
         {
-            output.Display(terms.InstallTaskStart);
-
-            settings.AppPath ??= @$"C:\inetpub\wwwroot\{settings.AppName}";
+            output.Display(terms.IisTaskStart);
 
             using var iisManager = new ServerManager();
+
+            settings.AppName = settings.AppName ?? throw new ArgumentException($"'{nameof(settings.AppName)}' must be set!");
+            settings.AppPath ??= AppPath(settings.AppName);
+            settings.AppWebPath ??= $"{GetNextUnboundIpAddress(iisManager)}:443";
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);
@@ -70,10 +75,10 @@ namespace App.Install
 
             store.Close();
 
-            settings.AppWebPath ??= $"{GetNextUnboundIpAddress(iisManager)}:443";
+            var siteName = EnsureValidSiteName(iisManager.Sites, settings.AppName);
 
             var appSite = iisManager.Sites.Add(
-                settings.AppName,
+                siteName,
                 settings.AppWebPath + ":",
                 Path.Combine(settings.AppPath, "CMS"),
                 certificate.GetCertHash(),
@@ -81,7 +86,7 @@ namespace App.Install
                 SslFlags.None
                 );
 
-            var appPool = iisManager.ApplicationPools.Add(settings.AppName);
+            var appPool = iisManager.ApplicationPools.Add(EnsureValidAppPoolName(iisManager.ApplicationPools, siteName));
             appPool.Cpu.Action = ProcessorAction.KillW3wp;
             appPool.ProcessModel.IdentityType = ProcessModelIdentityType.NetworkService;
 
@@ -113,6 +118,26 @@ namespace App.Install
 
                 return ipAddressFragment + index;
             }
+        }
+
+        private string EnsureValidSiteName(SiteCollection sites, string siteName)
+        {
+            if (sites.Any(site => site.Name.Equals(siteName)))
+            {
+                siteName += $"_{GetRandomString(10)}";
+            }
+
+            return siteName;
+        }
+
+        private string EnsureValidAppPoolName(ApplicationPoolCollection appPools, string appPoolName)
+        {
+            if (appPools.Any(appPool => appPool.Name.Equals(appPoolName)))
+            {
+                appPoolName += $"_{GetRandomString(10)}";
+            }
+
+            return appPoolName;
         }
 
         private X509Certificate2 GetSelfSignedCertificate(string name)

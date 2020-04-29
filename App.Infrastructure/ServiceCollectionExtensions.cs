@@ -17,6 +17,7 @@ namespace App.Infrastructure
                 .AddSingleton<IOutputService, OutputService>()
                 .AddSingleton<ICacheService, CacheService>()
                 .AddTransient<IProcessService, ProcessService>()
+                .AddTransient<IDatabaseService, DatabaseService>()
                 .AddSingleton<ISetupTask, SetupTask>()
                 .AddSqliteCache(options =>
                 {

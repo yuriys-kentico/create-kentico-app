@@ -11,6 +11,7 @@ using App.Core.Models;
 using App.Core.Services;
 
 using static App.Install.Constants;
+using static App.Install.InstallHelper;
 
 namespace App.Install
 {
@@ -20,17 +21,17 @@ namespace App.Install
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly ICacheService cache;
-        private readonly IIisSiteTask iisSiteTask;
         private readonly Func<IProcessService> process;
         private readonly HttpClient httpClient;
 
         private string GetHotfixesUri => "https://service.kentico.com/CMSUpgradeService.asmx";
 
+        private Func<Version, string> HotfixUri => version => $"https://www.kentico.com/Downloads/HotFix/{version.Major}_{version.Minor}/HotFix_{version.Major}_{version.Minor}_{version.Build}.exe";
+
         public HotfixTask(
             Settings settings,
             Terms terms,
             Services services,
-            IIisSiteTask iisSiteTask,
             HttpClient httpClient
             )
         {
@@ -38,7 +39,6 @@ namespace App.Install
             this.terms = terms;
             output = services.OutputService();
             cache = services.CacheService();
-            this.iisSiteTask = iisSiteTask;
             process = services.ProcessService;
             this.httpClient = httpClient;
         }
@@ -57,17 +57,16 @@ namespace App.Install
                 settings.Version = new Version(settings.Version.Major, settings.Version.Minor, await GetLatestHotfix(settings.Version.Major));
             }
 
-            var hotfixUriFragment = $"{settings.Version.Major}_0/HotFix_{settings.Version.Major}_0_{settings.Version.Build}.exe";
-            var hotfixUri = "https://www.kentico.com/Downloads/HotFix/" + hotfixUriFragment;
+            var hotfixUri = HotfixUri(settings.Version);
 
-            var hotfixDownloadPath = await cache.GetString(hotfixUri);
+            var hotfixDownloadPath = await cache.GetString(hotfixUri + HotfixDownloadCacheKeySuffix);
 
             if (hotfixDownloadPath == null)
             {
                 hotfixDownloadPath = Path.GetTempFileName();
 
-                await DownloadFile(hotfixUri, hotfixDownloadPath);
-                await cache.SetString(hotfixUri, hotfixDownloadPath);
+                await DownloadFile(httpClient, hotfixUri, hotfixDownloadPath, output, terms.Downloading);
+                await cache.SetString(hotfixUri + HotfixDownloadCacheKeySuffix, hotfixDownloadPath);
 
                 output.Display(terms.DownloadComplete);
             }
@@ -76,14 +75,14 @@ namespace App.Install
                 output.Display(terms.SkippingDownload);
             }
 
-            var hotfixUnpackPath = await cache.GetString(hotfixUriFragment);
+            var hotfixUnpackPath = await cache.GetString(hotfixUri + HotfixUnpackCacheKeySuffix);
 
             if (hotfixUnpackPath == null)
             {
                 hotfixUnpackPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
                 Directory.CreateDirectory(hotfixUnpackPath);
-                await cache.SetString(hotfixUriFragment, hotfixUnpackPath);
+                await cache.SetString(hotfixUri + HotfixUnpackCacheKeySuffix, hotfixUnpackPath);
             }
 
             var hotfixPath = Path.Combine(hotfixUnpackPath, "Hotfix.exe");
@@ -114,37 +113,6 @@ namespace App.Install
                 .Run();
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
-
-            await iisSiteTask.Run();
-        }
-
-        private async Task DownloadFile(string requestUri, string downloadPath)
-        {
-            using var response = await httpClient.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead);
-
-            response.EnsureSuccessStatusCode();
-
-            var progressBar = output.ProgressBar((int?)response.Content.Headers.ContentLength ?? 0, terms.Downloading);
-
-            var buffer = new byte[8192];
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer.Length, true);
-
-            while (true)
-            {
-                var readBytes = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-
-                if (readBytes > 0)
-                {
-                    await fileStream.WriteAsync(buffer, 0, readBytes);
-
-                    output.UpdateProgress(progressBar, readBytes);
-                }
-                else
-                {
-                    break;
-                }
-            }
         }
 
         private async Task<int> GetLatestHotfix(int version)

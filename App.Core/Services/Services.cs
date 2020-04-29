@@ -20,5 +20,7 @@ namespace App.Core.Services
         public IOutputService OutputService() => serviceProvider.GetRequiredService<IOutputService>();
 
         public ICacheService CacheService() => serviceProvider.GetRequiredService<ICacheService>();
+
+        public IDatabaseService DatabaseService() => serviceProvider.GetRequiredService<IDatabaseService>();
     }
 }
