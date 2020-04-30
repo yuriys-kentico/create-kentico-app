@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 
 using App.Core.Models;
@@ -13,7 +14,8 @@ namespace App.Core
         public static IServiceCollection AddCore(this IServiceCollection serviceCollection, string[] args)
         {
             var aliasMappings = typeof(Settings)
-                .GetProperties()
+                .GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.GetCustomAttribute<AliasesAttribute>() != null)
                 .SelectMany(property => property.GetCustomAttribute<AliasesAttribute>()?
                     .Aliases
                     .Select(alias => (alias, property.Name)))

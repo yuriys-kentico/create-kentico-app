@@ -59,19 +59,19 @@ namespace App.Install
             settings.DbName ??= settings.AppName;
             settings.DbName = await EnsureValidDatabaseName(settings.DbName);
 
-            if (settings.Version == null)
+            if (settings.ParsedVersion == null)
             {
                 output.Display(terms.VersionNotSpecified);
                 output.Display(terms.UsingLatestVersion);
 
-                settings.Version = new Version(12, 0, UnspecifiedHotfix);
+                settings.ParsedVersion = new KenticoVersion(12);
             }
 
-            var versionUri = VersionUri(settings.Version);
+            var versionUri = VersionUri(settings.ParsedVersion);
 
             var installDownloadPath = await cache.GetString(versionUri);
 
-            if (installDownloadPath == null)
+            if (installDownloadPath == null || !File.Exists(installDownloadPath))
             {
                 installDownloadPath = Path.GetTempFileName();
 
@@ -87,11 +87,11 @@ namespace App.Install
 
             var installXmlPath = Path.GetTempFileName();
             var installLogPath = Path.GetTempFileName();
-            var setupPath = SetupPath(settings.Version);
+            var setupPath = SetupPath(settings.ParsedVersion);
 
             SetPermissions(settings.AppPath, WellKnownSidType.NetworkServiceSid, FileSystemRights.Modify);
 
-            await WriteInstallXml(installXmlPath, installLogPath, setupPath, settings.AppPath, settings.Version);
+            await WriteInstallXml(installXmlPath, installLogPath, setupPath, settings.AppPath, settings.ParsedVersion);
 
             output.Display(terms.BeginInstallOutput);
 
@@ -224,7 +224,7 @@ namespace App.Install
                         new XAttribute("OpenAfterInstall", false)
                     ),
                 12 => new XElement("Setup",
-                        new XAttribute("NET", "4.8"),
+                        new XAttribute("NET", "4.6.1"),
                         new XAttribute("SetupFolder", setupPath),
                         new XAttribute("DevelopmentModel", "MVC"),
                         new XAttribute("WebProject", "WebApplication"),

@@ -97,9 +97,9 @@ namespace App.Install
 
         private string GetNextUnboundIpAddress(ServerManager iisManager)
         {
-            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set!");
+            settings.ParsedVersion = settings.ParsedVersion ?? throw new ArgumentException($"'{nameof(settings.ParsedVersion)}' must be set!");
 
-            var ipAddressFragment = $"127.{settings.Version.Major}.{settings.Version.Build}.";
+            var ipAddressFragment = $"127.{settings.ParsedVersion.Major}.{settings.ParsedVersion.Build}.";
 
             var allBoundIpAddresses = iisManager.Sites
                 .SelectMany(site => site.Bindings)

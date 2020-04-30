@@ -4,6 +4,8 @@ namespace App.Core.Models
 {
     public class Settings
     {
+        private KenticoVersion? version;
+
         [Aliases("-n")]
         public string? AppName { get; set; }
 
@@ -14,7 +16,13 @@ namespace App.Core.Models
         public string? AppWebPath { get; set; }
 
         [Aliases("-v")]
-        public Version? Version { get; set; }
+        public string? Version { get; set; }
+
+        public KenticoVersion? ParsedVersion
+        {
+            get => version ?? (Version != null ? new KenticoVersion(Version) : null);
+            set => version = value;
+        }
 
         [Aliases("-d", "-dn")]
         public string? DbName { get; set; }

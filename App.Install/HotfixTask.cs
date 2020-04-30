@@ -47,21 +47,21 @@ namespace App.Install
         {
             output.Display(terms.HotfixTaskStart);
 
-            var hotfix = settings.Version?.Build ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set!");
+            var hotfix = settings.ParsedVersion?.Build ?? throw new ArgumentException($"'{nameof(settings.ParsedVersion)}' must be set!");
 
-            if (hotfix == UnspecifiedHotfix)
+            if (hotfix < 0)
             {
                 output.Display(terms.HotfixNotSpecified);
                 output.Display(terms.GettingLatestHotfix);
 
-                settings.Version = new Version(settings.Version.Major, settings.Version.Minor, await GetLatestHotfix(settings.Version.Major));
+                settings.ParsedVersion = new Version(settings.ParsedVersion.Major, settings.ParsedVersion.Minor, await GetLatestHotfix(settings.ParsedVersion.Major));
             }
 
-            var hotfixUri = HotfixUri(settings.Version);
+            var hotfixUri = HotfixUri(settings.ParsedVersion);
 
             var hotfixDownloadPath = await cache.GetString(hotfixUri + HotfixDownloadCacheKeySuffix);
 
-            if (hotfixDownloadPath == null)
+            if (hotfixDownloadPath == null || !File.Exists(hotfixDownloadPath))
             {
                 hotfixDownloadPath = Path.GetTempFileName();
 
@@ -77,7 +77,7 @@ namespace App.Install
 
             var hotfixUnpackPath = await cache.GetString(hotfixUri + HotfixUnpackCacheKeySuffix);
 
-            if (hotfixUnpackPath == null)
+            if (hotfixUnpackPath == null || !File.Exists(hotfixUnpackPath))
             {
                 hotfixUnpackPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
