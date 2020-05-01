@@ -64,7 +64,7 @@ namespace App.Install
             }
             else
             {
-                certificate = GetSelfSignedCertificate("create-kentico-app");
+                certificate = GetSelfSignedCertificate(terms.CertificateName);
 
                 store.Add(certificate);
 

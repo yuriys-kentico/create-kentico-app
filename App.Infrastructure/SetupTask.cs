@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Reflection;
+using System.Threading.Tasks;
 
 using App.Core;
 using App.Core.Models;
@@ -34,6 +35,10 @@ namespace App.Infrastructure
 
         public async Task Run()
         {
+            output.Display(terms.CreateKenticoAppVersion + Assembly.GetEntryAssembly()?
+                               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                               .InformationalVersion);
+
             output.Display(terms.Setup);
 
             await installTask.Run();

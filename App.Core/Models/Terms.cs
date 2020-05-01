@@ -2,6 +2,8 @@
 {
     public class Terms
     {
+        public string CreateKenticoAppVersion => "create-kentico-app v";
+
         public string Setup => "Setting up...";
 
         public string InstallTaskStart => "Starting installation...";
@@ -23,6 +25,8 @@
         public string IisTaskStart => "Starting IIS registration...";
 
         public string CreatedNewCertificate => "Created new certificate.";
+
+        public string CertificateName => "create-kentico-app";
 
         public string SkippingCreatingCertificate => "Found existing certificate, skipping creating a new one...";
 
