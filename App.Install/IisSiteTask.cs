@@ -44,9 +44,10 @@ namespace App.Install
 
             using var iisManager = new ServerManager();
 
-            settings.AppName = settings.AppName ?? throw new ArgumentException($"'{nameof(settings.AppName)}' must be set!");
-            settings.AppPath ??= AppPath(settings.AppName);
-            settings.AppWebPath ??= $"{GetNextUnboundIpAddress(iisManager)}:443";
+            settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
+            settings.Path ??= AppPath(settings.Name);
+            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            settings.AdminDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version, settings.AppDomain ?? "");
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);
@@ -75,12 +76,12 @@ namespace App.Install
 
             store.Close();
 
-            var siteName = EnsureValidSiteName(iisManager.Sites, settings.AppName);
+            var siteName = EnsureValidSiteName(iisManager.Sites, settings.Name);
 
-            var appSite = iisManager.Sites.Add(
-                siteName,
-                settings.AppWebPath + ":",
-                Path.Combine(settings.AppPath, "CMS"),
+            var adminSite = iisManager.Sites.Add(
+                $"{siteName}_Admin",
+                settings.AdminDomain + ":443:",
+                Path.Combine(settings.Path, "CMS"),
                 certificate.GetCertHash(),
                 store.Name,
                 SslFlags.None
@@ -90,34 +91,25 @@ namespace App.Install
             appPool.Cpu.Action = ProcessorAction.KillW3wp;
             appPool.ProcessModel.IdentityType = ProcessModelIdentityType.NetworkService;
 
-            appSite.ApplicationDefaults.ApplicationPoolName = appPool.Name;
+            adminSite.ApplicationDefaults.ApplicationPoolName = appPool.Name;
+
+            if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
+            {
+                settings.AppDomain = settings.AppDomain ?? throw new InvalidOperationException($"'{nameof(settings.AppDomain)}' must be set if '{nameof(settings.AppTemplate)}' is set.");
+
+                var appSite = iisManager.Sites.Add(
+                    siteName,
+                    settings.AppDomain + ":443:",
+                    Path.Combine(settings.Path, settings.Name),
+                    certificate.GetCertHash(),
+                    store.Name,
+                    SslFlags.None
+                    );
+
+                appSite.ApplicationDefaults.ApplicationPoolName = appPool.Name;
+            }
 
             iisManager.CommitChanges();
-        }
-
-        private string GetNextUnboundIpAddress(ServerManager iisManager)
-        {
-            settings.ParsedVersion = settings.ParsedVersion ?? throw new ArgumentException($"'{nameof(settings.ParsedVersion)}' must be set!");
-
-            var ipAddressFragment = $"127.{settings.ParsedVersion.Major}.{settings.ParsedVersion.Build}.";
-
-            var allBoundIpAddresses = iisManager.Sites
-                .SelectMany(site => site.Bindings)
-                .Select(binding => binding.BindingInformation.Split(':').First());
-
-            var index = 0;
-
-            while (true)
-            {
-                index++;
-
-                if (allBoundIpAddresses.Any(ipAddress => ipAddress.Equals(ipAddressFragment + index)))
-                {
-                    continue;
-                }
-
-                return ipAddressFragment + index;
-            }
         }
 
         private string EnsureValidSiteName(SiteCollection sites, string siteName)
@@ -168,7 +160,7 @@ namespace App.Install
 
             certificate.FriendlyName = name;
 
-            var password = $"{Environment.MachineName}_{settings.AppName}";
+            var password = $"{Environment.MachineName}_{settings.Name}";
 
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx, password), password, X509KeyStorageFlags.MachineKeySet);
         }

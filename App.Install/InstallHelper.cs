@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-
+using App.Core.Models;
 using App.Core.Services;
+
+using Microsoft.Web.Administration;
 
 namespace App.Install
 {
@@ -39,6 +42,30 @@ namespace App.Install
                 {
                     break;
                 }
+            }
+        }
+
+        internal static string GetNextUnboundIpAddress(ServerManager iisManager, KenticoVersion version, params string[] blacklist)
+        {
+            var ipAddressFragment = $"127.{version.Major}.{version.Hotfix}.";
+
+            var allBoundIpAddresses = iisManager.Sites
+                .SelectMany(site => site.Bindings)
+                .Select(binding => binding.BindingInformation.Split(':').First())
+                .Concat(blacklist);
+
+            var index = 0;
+
+            while (true)
+            {
+                index++;
+
+                if (allBoundIpAddresses.Any(ipAddress => ipAddress.Equals(ipAddressFragment + index)))
+                {
+                    continue;
+                }
+
+                return ipAddressFragment + index;
             }
         }
 

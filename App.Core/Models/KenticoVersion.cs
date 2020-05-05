@@ -1,26 +1,31 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Globalization;
 
 namespace App.Core.Models
 {
+    [TypeConverter(typeof(KenticoVersionConverter))]
     public class KenticoVersion
     {
-        private readonly Version version;
+        public int Major { get; set; }
 
-        public int Major => version.Major;
+        public int Minor { get; set; }
 
-        public int Minor => version.Minor;
-
-        public int Build => version.Build;
+        public int Hotfix { get; set; }
 
         public KenticoVersion(string version)
         {
             if (Version.TryParse(version, out var result))
             {
-                this.version = result;
+                Major = result.Major;
+                Minor = result.Minor;
+                Hotfix = result.Build;
             }
             else if (Version.TryParse($"{version}.0", out result))
             {
-                this.version = result;
+                Major = result.Major;
+                Minor = result.Minor;
+                Hotfix = result.Build;
             }
             else
             {
@@ -31,11 +36,23 @@ namespace App.Core.Models
         public KenticoVersion(int major) : this(major.ToString())
         {
         }
+    }
 
-        protected KenticoVersion(Version version) => this.version = version;
+    public class KenticoVersionConverter : TypeConverter
+    {
+        public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+        {
+            return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+        }
 
-        public static implicit operator KenticoVersion(Version version) => new KenticoVersion(version);
+        public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+        {
+            if (value is string stringValue)
+            {
+                return new KenticoVersion(stringValue);
+            }
 
-        public static implicit operator Version(KenticoVersion? version) => version?.version ?? throw new ArgumentNullException(nameof(version));
+            throw new InvalidOperationException($"'{value}' is not a string.");
+        }
     }
 }

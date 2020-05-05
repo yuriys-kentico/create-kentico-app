@@ -22,5 +22,7 @@ namespace App.Core.Services
         public ICacheService CacheService() => serviceProvider.GetRequiredService<ICacheService>();
 
         public IDatabaseService DatabaseService() => serviceProvider.GetRequiredService<IDatabaseService>();
+
+        public IKenticoPathService KenticoPathService() => serviceProvider.GetRequiredService<IKenticoPathService>();
     }
 }

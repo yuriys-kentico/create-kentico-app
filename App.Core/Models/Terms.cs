@@ -20,6 +20,8 @@
 
         public string BeginInstallOutput => "Showing output from installer...";
 
+        public string BeginSourceInstallOutput => "Showing output from source code unpacker...";
+
         public string BeginUninstallOutput => "Showing output from uninstaller...";
 
         public string IisTaskStart => "Starting IIS registration...";
@@ -46,6 +48,12 @@
 
         public string SolutionPath => "Solution installed at: {0}";
 
-        public string WebPath => "Admin available at: https://{0}";
+        public string AdminPath => "Admin available at: https://{0}:443";
+
+        public string AppPath => "App available at: https://{0}:443";
+
+        public string SourceHotfixStep => "Source hotfix available at: {0}";
+
+        public string AdditionalSourceSteps => "The source code installation requires the following steps: a manual build, install of the database, and install of the hotfix.";
     }
 }

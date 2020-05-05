@@ -1,10 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 using App.Core;
 using App.Core.Models;
@@ -22,11 +19,8 @@ namespace App.Install
         private readonly IOutputService output;
         private readonly ICacheService cache;
         private readonly Func<IProcessService> process;
+        private readonly IKenticoPathService kenticoPath;
         private readonly HttpClient httpClient;
-
-        private string GetHotfixesUri => "https://service.kentico.com/CMSUpgradeService.asmx";
-
-        private Func<Version, string> HotfixUri => version => $"https://www.kentico.com/Downloads/HotFix/{version.Major}_{version.Minor}/HotFix_{version.Major}_{version.Minor}_{version.Build}.exe";
 
         public HotfixTask(
             Settings settings,
@@ -40,6 +34,7 @@ namespace App.Install
             output = services.OutputService();
             cache = services.CacheService();
             process = services.ProcessService;
+            kenticoPath = services.KenticoPathService();
             this.httpClient = httpClient;
         }
 
@@ -47,17 +42,7 @@ namespace App.Install
         {
             output.Display(terms.HotfixTaskStart);
 
-            var hotfix = settings.ParsedVersion?.Build ?? throw new ArgumentException($"'{nameof(settings.ParsedVersion)}' must be set!");
-
-            if (hotfix < 0)
-            {
-                output.Display(terms.HotfixNotSpecified);
-                output.Display(terms.GettingLatestHotfix);
-
-                settings.ParsedVersion = new Version(settings.ParsedVersion.Major, settings.ParsedVersion.Minor, await GetLatestHotfix(settings.ParsedVersion.Major));
-            }
-
-            var hotfixUri = HotfixUri(settings.ParsedVersion);
+            var hotfixUri = kenticoPath.GetHotfixUri();
 
             var hotfixDownloadPath = await cache.GetString(hotfixUri + HotfixDownloadCacheKeySuffix);
 
@@ -109,51 +94,10 @@ namespace App.Install
             var hotfixProcess = process()
                 .NewProcess(hotfixPath)
                 .InDirectory(Path.GetDirectoryName(hotfixPath))
-                .WithArguments($"/silentpath=\"{settings.AppPath}\"")
+                .WithArguments($"/silentpath=\"{settings.Path}\"")
                 .Run();
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
-        }
-
-        private async Task<int> GetLatestHotfix(int version)
-        {
-            XNamespace soap12 = "http://www.w3.org/2003/05/soap-envelope";
-            XNamespace service = "http://service.kentico.com/";
-
-            var getHotfixesRequest = new XDocument(
-                new XElement(soap12 + "Envelope",
-                    new XAttribute(XNamespace.Xmlns + nameof(soap12), soap12),
-                    new XElement(soap12 + "Body",
-                        new XElement(service + "GetHotfixes",
-                            new XElement(service + "fromVersion", version),
-                            new XElement(service + "toVersion", version)
-                        )
-                    )
-                )
-            );
-
-            var request = new HttpRequestMessage()
-            {
-                RequestUri = new Uri(GetHotfixesUri),
-                Method = HttpMethod.Post,
-                Content = new StringContent(getHotfixesRequest.ToString(), Encoding.UTF8, "application/soap+xml")
-            };
-
-            var getHotfixesResponse = await httpClient.SendAsync(request);
-
-            var getHotfixesXml = await XDocument.LoadAsync(
-                await getHotfixesResponse.Content.ReadAsStreamAsync(),
-                LoadOptions.None,
-                default
-                );
-
-            var latestHotfixVersion = new Version(getHotfixesXml
-                .Descendants(service + "HotfixListItem")
-                .First()
-                .Element(service + "Version")
-                .Value);
-
-            return latestHotfixVersion.Build;
         }
     }
 }

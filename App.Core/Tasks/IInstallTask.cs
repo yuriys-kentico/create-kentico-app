@@ -4,5 +4,6 @@ namespace App.Core
 {
     public interface IInstallTask : ITask
     {
+        bool Source { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -11,7 +12,8 @@ using App.Core;
 using App.Core.Models;
 using App.Core.Services;
 
-using static App.Install.Constants;
+using Microsoft.Web.Administration;
+
 using static App.Install.InstallHelper;
 
 namespace App.Install
@@ -24,13 +26,10 @@ namespace App.Install
         private readonly ICacheService cache;
         private readonly Func<IProcessService> process;
         private readonly IDatabaseService database;
+        private readonly IKenticoPathService kenticoPath;
         private readonly HttpClient httpClient;
 
-        private Func<Version, string> VersionUri => version => $"https://download.kentico.com/Kentico_{version.Major}_{version.Minor}.exe";
-
-        private Func<Version, string> SetupPath => version => @$"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Kentico\{version.Major}.{version.Minor}";
-
-        private Func<string, string> AppPath => appFolderName => @$"C:\inetpub\wwwroot\{appFolderName}";
+        public bool Source { get; set; }
 
         public InstallTask(
             Settings settings,
@@ -45,6 +44,7 @@ namespace App.Install
             cache = services.CacheService();
             process = services.ProcessService;
             database = services.DatabaseService();
+            kenticoPath = services.KenticoPathService();
             this.httpClient = httpClient;
         }
 
@@ -52,22 +52,30 @@ namespace App.Install
         {
             output.Display(terms.InstallTaskStart);
 
-            settings.AppName = settings.AppName ?? throw new ArgumentException($"'{nameof(settings.AppName)}' must be set!");
-            settings.AppPath ??= AppPath(settings.AppName);
-            settings.AppPath = EnsureValidAppPath(settings.AppPath);
+            settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
+            settings.Path ??= kenticoPath.GetSolutionPath();
+            settings.Path = EnsureValidAppPath(settings.Path);
 
-            settings.DbName ??= settings.AppName;
+            settings.DbName ??= settings.Name;
             settings.DbName = await EnsureValidDatabaseName(settings.DbName);
 
-            if (settings.ParsedVersion == null)
+            if (settings.Version == null)
             {
                 output.Display(terms.VersionNotSpecified);
                 output.Display(terms.UsingLatestVersion);
 
-                settings.ParsedVersion = new KenticoVersion(12);
+                settings.Version = new KenticoVersion(12);
             }
 
-            var versionUri = VersionUri(settings.ParsedVersion);
+            if (settings.Version.Hotfix < 0)
+            {
+                output.Display(terms.HotfixNotSpecified);
+                output.Display(terms.GettingLatestHotfix);
+
+                settings.Version.Hotfix = await GetLatestHotfix(settings.Version.Major);
+            }
+
+            var versionUri = kenticoPath.GetInstallerUri();
 
             var installDownloadPath = await cache.GetString(versionUri);
 
@@ -85,13 +93,28 @@ namespace App.Install
                 output.Display(terms.SkippingDownload);
             }
 
+            SetPermissions(settings.Path, WellKnownSidType.NetworkServiceSid, FileSystemRights.Modify);
+
+            if (Source)
+            {
+                output.Display(terms.BeginSourceInstallOutput);
+
+                var sourceInstallProcess = process()
+                    .NewProcess(installDownloadPath)
+                    .InDirectory(Path.GetDirectoryName(installDownloadPath))
+                    .WithArguments($"-o\"{settings.Path}\" -p\"{settings.SourcePassword}\" -y")
+                    .Run();
+
+                if (sourceInstallProcess.ExitCode > 0) throw new Exception("Source install process failed!");
+
+                return;
+            }
+
             var installXmlPath = Path.GetTempFileName();
             var installLogPath = Path.GetTempFileName();
-            var setupPath = SetupPath(settings.ParsedVersion);
+            var setupPath = kenticoPath.GetSetupPath();
 
-            SetPermissions(settings.AppPath, WellKnownSidType.NetworkServiceSid, FileSystemRights.Modify);
-
-            await WriteInstallXml(installXmlPath, installLogPath, setupPath, settings.AppPath, settings.ParsedVersion);
+            await WriteInstallXml(installXmlPath, installLogPath, setupPath);
 
             output.Display(terms.BeginInstallOutput);
 
@@ -131,6 +154,17 @@ namespace App.Install
             if (installProcess.ExitCode == 1) throw new Exception("Install after uninstall process failed!");
         }
 
+        private string EnsureValidAppPath(string appPath)
+        {
+            if (Directory.Exists(appPath) && Directory.EnumerateFileSystemEntries(appPath).Any())
+            {
+                appPath += $"_{GetRandomString(10)}";
+            }
+
+            Directory.CreateDirectory(appPath);
+            return appPath;
+        }
+
         private async Task<string> EnsureValidDatabaseName(string dbName)
         {
             var databases = await database.Query("select name from sys.databases");
@@ -143,15 +177,45 @@ namespace App.Install
             return dbName;
         }
 
-        private string EnsureValidAppPath(string appPath)
+        private async Task<int> GetLatestHotfix(int version)
         {
-            if (Directory.Exists(appPath) && Directory.EnumerateFileSystemEntries(appPath).Any())
-            {
-                appPath += $"_{GetRandomString(10)}";
-            }
+            XNamespace soap12 = "http://www.w3.org/2003/05/soap-envelope";
+            XNamespace service = "http://service.kentico.com/";
 
-            Directory.CreateDirectory(appPath);
-            return appPath;
+            var getHotfixesRequest = new XDocument(
+                new XElement(soap12 + "Envelope",
+                    new XAttribute(XNamespace.Xmlns + nameof(soap12), soap12),
+                    new XElement(soap12 + "Body",
+                        new XElement(service + "GetHotfixes",
+                            new XElement(service + "fromVersion", version),
+                            new XElement(service + "toVersion", version)
+                        )
+                    )
+                )
+            );
+
+            var request = new HttpRequestMessage()
+            {
+                RequestUri = new Uri(kenticoPath.GetHotfixesUri()),
+                Method = HttpMethod.Post,
+                Content = new StringContent(getHotfixesRequest.ToString(), Encoding.UTF8, "application/soap+xml")
+            };
+
+            var getHotfixesResponse = await httpClient.SendAsync(request);
+
+            var getHotfixesXml = await XDocument.LoadAsync(
+                await getHotfixesResponse.Content.ReadAsStreamAsync(),
+                LoadOptions.None,
+                default
+                );
+
+            var latestHotfixVersion = new Version(getHotfixesXml
+                .Descendants(service + "HotfixListItem")
+                .First()
+                .Element(service + "Version")
+                .Value);
+
+            return latestHotfixVersion.Build;
         }
 
         private void SetPermissions(string path, WellKnownSidType sid, FileSystemRights fileSystemRights)
@@ -167,7 +231,7 @@ namespace App.Install
             directory.SetAccessControl(security);
         }
 
-        private async Task WriteInstallXml(string installXmlPath, string installLogPath, string setupPath, string appPath, Version version)
+        private async Task WriteInstallXml(string installXmlPath, string installLogPath, string setupPath)
         {
             var installXml = new XDocument(
                 new XElement("SilentInstall",
@@ -176,10 +240,10 @@ namespace App.Install
                     new XAttribute("OnError", "Stop"),
                     new XAttribute("LogFile", installLogPath),
                     new XAttribute("CheckRequirements", true),
-                    GetSetupElement(version, setupPath),
+                    GetSetupElement(setupPath),
                     new XElement("IIS",
                         new XAttribute("Website", string.Empty),
-                        new XAttribute("TargetFolder", appPath),
+                        new XAttribute("TargetFolder", settings.Path),
                         new XAttribute("KillRunningProcesses", true)
                     ),
                     new XElement("Sql",
@@ -190,6 +254,7 @@ namespace App.Install
                         new XAttribute("SqlName", settings.DbServerUser),
                         new XAttribute("SqlPswd", settings.DbServerPassword)
                     ),
+                    GetTemplatesElement(),
                     new XElement("Modules",
                         new XAttribute("type", "InstallAll")
                     ),
@@ -205,9 +270,11 @@ namespace App.Install
             await File.WriteAllTextAsync(installXmlPath, installXml.ToString());
         }
 
-        private XElement GetSetupElement(Version version, string setupPath)
+        private XElement GetSetupElement(string setupPath)
         {
-            return version.Major switch
+            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+
+            return settings.Version.Major switch
             {
                 10 => new XElement("Setup",
                         new XAttribute("NET", "4.6"),
@@ -231,8 +298,31 @@ namespace App.Install
                         new XAttribute("OpenAfterInstall", false),
                         new XAttribute("RegisterToIIS", false)
                     ),
-                _ => throw new ArgumentOutOfRangeException($"Version '{version.Major}' has no supported XML configuration."),
+                _ => throw new ArgumentOutOfRangeException($"Version '{settings.Version.Major}' has no supported XML configuration."),
             };
+        }
+
+        private XElement? GetTemplatesElement()
+        {
+            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+
+            if (string.IsNullOrWhiteSpace(settings.AppTemplate))
+            {
+                return null;
+            }
+
+            using var iisManager = new ServerManager();
+
+            settings.AppDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version);
+
+            return new XElement("WebSites",
+                new XElement("WebSite",
+                    new XAttribute("domain", settings.AppDomain),
+                    new XAttribute("displayname", settings.Name),
+                    new XAttribute("webtemplatename", settings.AppTemplate),
+                    new XAttribute("projectdirectoryname", settings.Name)
+                )
+            );
         }
     }
 }

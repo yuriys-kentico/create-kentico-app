@@ -1,39 +1,41 @@
-﻿using System;
-
-namespace App.Core.Models
+﻿namespace App.Core.Models
 {
     public class Settings
     {
-        private KenticoVersion? version;
-
         [Aliases("-n")]
-        public string? AppName { get; set; }
+        public string? Name { get; set; }
 
         [Aliases("-p")]
-        public string? AppPath { get; set; }
+        public string? Path { get; set; }
 
-        [Aliases("-w")]
-        public string? AppWebPath { get; set; }
+        [Aliases("-aad")]
+        public string? AdminDomain { get; set; }
 
-        [Aliases("-v")]
-        public string? Version { get; set; }
+        [Aliases("-ad")]
+        public string? AppDomain { get; set; }
 
-        public KenticoVersion? ParsedVersion
-        {
-            get => version ?? (Version != null ? new KenticoVersion(Version) : null);
-            set => version = value;
-        }
+        [Aliases("-t", "-at")]
+        public string? AppTemplate { get; set; }
+
+        [Aliases("-v", "-av")]
+        public KenticoVersion? Version { get; set; }
+
+        [Aliases("-s")]
+        public bool? Source { get; set; }
+
+        [Aliases("-sp")]
+        public string? SourcePassword { get; set; }
 
         [Aliases("-d", "-dn")]
         public string? DbName { get; set; }
 
-        [Aliases("-s", "-sn")]
+        [Aliases("-ds")]
         public string? DbServerName { get; set; }
 
-        [Aliases("-su")]
+        [Aliases("-du")]
         public string? DbServerUser { get; set; }
 
-        [Aliases("-sp")]
+        [Aliases("-dp")]
         public string? DbServerPassword { get; set; }
     }
 }
