@@ -2,7 +2,7 @@
 
 namespace App.Core
 {
-    public interface IIisSiteTask : ITask
+    public interface IDatabaseTask : ITask
     {
     }
 }

@@ -56,8 +56,8 @@ namespace App.Install
             settings.Path ??= kenticoPath.GetSolutionPath();
             settings.Path = EnsureValidAppPath(settings.Path);
 
-            settings.DbName ??= settings.Name;
-            settings.DbName = await EnsureValidDatabaseName(settings.DbName);
+            settings.DatabaseName ??= settings.Name;
+            settings.DatabaseName = await EnsureValidDatabaseName(settings.DatabaseName);
 
             if (settings.Version == null)
             {
@@ -74,6 +74,16 @@ namespace App.Install
 
                 settings.Version.Hotfix = await GetLatestHotfix(settings.Version.Major);
             }
+
+            if (settings.Version.Major == 12 && settings.Version.Hotfix < 29)
+            {
+                settings.Version.Hotfix = 29;
+            }
+
+            using var iisManager = new ServerManager();
+
+            settings.AppDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version);
+            settings.AdminDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version, settings.AppDomain ?? "");
 
             var versionUri = kenticoPath.GetInstallerUri();
 
@@ -167,7 +177,7 @@ namespace App.Install
 
         private async Task<string> EnsureValidDatabaseName(string dbName)
         {
-            var databases = await database.Query("select name from sys.databases");
+            var databases = await database.Select("name").From("sys.databases").Query();
 
             if (databases.Any(database => dbName.Equals(database.name)))
             {
@@ -209,13 +219,13 @@ namespace App.Install
                 default
                 );
 
-            var latestHotfixVersion = new Version(getHotfixesXml
+            var latestHotfixVersion = new KenticoVersion(getHotfixesXml
                 .Descendants(service + "HotfixListItem")
                 .First()
                 .Element(service + "Version")
                 .Value);
 
-            return latestHotfixVersion.Build;
+            return latestHotfixVersion.Hotfix;
         }
 
         private void SetPermissions(string path, WellKnownSidType sid, FileSystemRights fileSystemRights)
@@ -248,13 +258,13 @@ namespace App.Install
                     ),
                     new XElement("Sql",
                         new XAttribute("InstallDatabase", true),
-                        new XAttribute("Server", settings.DbServerName),
-                        new XAttribute("Database", settings.DbName),
+                        new XAttribute("Server", settings.DatabaseServerName),
+                        new XAttribute("Database", settings.DatabaseName),
                         new XAttribute("Authentication", "SQL"),
-                        new XAttribute("SqlName", settings.DbServerUser),
-                        new XAttribute("SqlPswd", settings.DbServerPassword)
+                        new XAttribute("SqlName", settings.DatabaseServerUser),
+                        new XAttribute("SqlPswd", settings.DatabaseServerPassword)
                     ),
-                    GetTemplatesElement(),
+                    GetWebSitesElement(),
                     new XElement("Modules",
                         new XAttribute("type", "InstallAll")
                     ),
@@ -263,7 +273,8 @@ namespace App.Install
                     ),
                     new XElement("Dictionaries",
                         new XAttribute("type", "InstallAll")
-                    )
+                    ),
+                    GetLicensesElement()
                 )
             );
 
@@ -302,25 +313,34 @@ namespace App.Install
             };
         }
 
-        private XElement? GetTemplatesElement()
+        private XElement? GetWebSitesElement()
         {
-            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
-
             if (string.IsNullOrWhiteSpace(settings.AppTemplate))
             {
                 return null;
             }
 
-            using var iisManager = new ServerManager();
-
-            settings.AppDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version);
-
             return new XElement("WebSites",
                 new XElement("WebSite",
-                    new XAttribute("domain", settings.AppDomain),
+                    new XAttribute("domain", settings.AdminDomain),
                     new XAttribute("displayname", settings.Name),
                     new XAttribute("webtemplatename", settings.AppTemplate),
                     new XAttribute("projectdirectoryname", settings.Name)
+                )
+            );
+        }
+
+        private XElement? GetLicensesElement()
+        {
+            if (string.IsNullOrWhiteSpace(settings.License))
+            {
+                return null;
+            }
+
+            return new XElement("Licenses",
+                new XElement("License",
+                    new XAttribute("domain", settings.AdminDomain),
+                    settings.License
                 )
             );
         }

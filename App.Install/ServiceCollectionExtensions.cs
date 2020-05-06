@@ -9,7 +9,8 @@ namespace App.Install
         public static IServiceCollection AddInstall(this IServiceCollection serviceCollection)
         {
             serviceCollection
-                .AddSingleton<IIisSiteTask, IisSiteTask>()
+                .AddSingleton<IIisTask, IisTask>()
+                .AddSingleton<IDatabaseTask, DatabaseTask>()
                 .AddSingleton<IInstallTask, InstallTask>()
                 .AddHttpClient<IInstallTask, InstallTask>();
 

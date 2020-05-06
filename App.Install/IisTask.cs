@@ -12,21 +12,19 @@ using App.Core.Services;
 
 using Microsoft.Web.Administration;
 
-using static App.Install.Constants;
 using static App.Install.InstallHelper;
 
 namespace App.Install
 {
-    public class IisSiteTask : IIisSiteTask
+    public class IisTask : IIisTask
     {
         private readonly Settings settings;
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly ICacheService cache;
+        private readonly IKenticoPathService kenticoPath;
 
-        private Func<string, string> AppPath => appFolderName => @$"C:\inetpub\wwwroot\{appFolderName}";
-
-        public IisSiteTask(
+        public IisTask(
             Settings settings,
             Terms terms,
             Services services
@@ -36,6 +34,7 @@ namespace App.Install
             this.terms = terms;
             output = services.OutputService();
             cache = services.CacheService();
+            kenticoPath = services.KenticoPathService();
         }
 
         public async Task Run()
@@ -45,9 +44,8 @@ namespace App.Install
             using var iisManager = new ServerManager();
 
             settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
-            settings.Path ??= AppPath(settings.Name);
+            settings.Path ??= kenticoPath.GetSolutionPath(settings.Name);
             settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
-            settings.AdminDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version, settings.AppDomain ?? "");
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);

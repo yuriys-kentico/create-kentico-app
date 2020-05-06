@@ -16,7 +16,8 @@ namespace App.Infrastructure
         private readonly IKenticoPathService kenticoPath;
         private readonly IInstallTask installTask;
         private readonly IHotfixTask hotfixTask;
-        private readonly IIisSiteTask iisSiteTask;
+        private readonly IIisTask iisSiteTask;
+        private readonly IDatabaseTask databaseTask;
 
         public SetupTask(
             Settings settings,
@@ -24,7 +25,8 @@ namespace App.Infrastructure
             Services services,
             IInstallTask installTask,
             IHotfixTask hotfixTask,
-            IIisSiteTask iisSiteTask
+            IIisTask iisSiteTask,
+            IDatabaseTask databaseTask
             )
         {
             this.settings = settings;
@@ -34,6 +36,7 @@ namespace App.Infrastructure
             this.installTask = installTask;
             this.hotfixTask = hotfixTask;
             this.iisSiteTask = iisSiteTask;
+            this.databaseTask = databaseTask;
         }
 
         public async Task Run()
@@ -70,6 +73,7 @@ namespace App.Infrastructure
             }
 
             await iisSiteTask.Run();
+            await databaseTask.Run();
 
             output.Display(terms.InstallComplete);
             output.Display(string.Format(terms.SolutionPath, settings.Path));

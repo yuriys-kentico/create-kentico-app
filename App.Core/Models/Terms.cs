@@ -24,14 +24,6 @@
 
         public string BeginUninstallOutput => "Showing output from uninstaller...";
 
-        public string IisTaskStart => "Starting IIS registration...";
-
-        public string CreatedNewCertificate => "Created new certificate.";
-
-        public string CertificateName => "create-kentico-app";
-
-        public string SkippingCreatingCertificate => "Found existing certificate, skipping creating a new one...";
-
         public string HotfixTaskStart => "Starting hotfixing...";
 
         public string HotfixNotSpecified => "Hotfix not specified.";
@@ -43,6 +35,16 @@
         public string SkippingUnpackingHotfix => "Found existing files, skipping unpacking hotfix.";
 
         public string BeginHotfixOutput => "Showing output from hotfixer...";
+
+        public string IisTaskStart => "Starting IIS registration...";
+
+        public string CreatedNewCertificate => "Created new certificate.";
+
+        public string CertificateName => "create-kentico-app";
+
+        public string SkippingCreatingCertificate => "Found existing certificate, skipping creating a new one...";
+
+        public string DatabaseTaskStart => "Starting database changes...";
 
         public string InstallComplete => "Installation completed.";
 

@@ -8,16 +8,16 @@
         [Aliases("-p")]
         public string? Path { get; set; }
 
-        [Aliases("-aad")]
+        [Aliases("-ad")]
         public string? AdminDomain { get; set; }
 
-        [Aliases("-ad")]
+        [Aliases("-d")]
         public string? AppDomain { get; set; }
 
-        [Aliases("-t", "-at")]
+        [Aliases("-t")]
         public string? AppTemplate { get; set; }
 
-        [Aliases("-v", "-av")]
+        [Aliases("-v")]
         public KenticoVersion? Version { get; set; }
 
         [Aliases("-s")]
@@ -26,16 +26,19 @@
         [Aliases("-sp")]
         public string? SourcePassword { get; set; }
 
-        [Aliases("-d", "-dn")]
-        public string? DbName { get; set; }
+        [Aliases("-db")]
+        public string? DatabaseName { get; set; }
 
         [Aliases("-ds")]
-        public string? DbServerName { get; set; }
+        public string? DatabaseServerName { get; set; }
 
         [Aliases("-du")]
-        public string? DbServerUser { get; set; }
+        public string? DatabaseServerUser { get; set; }
 
         [Aliases("-dp")]
-        public string? DbServerPassword { get; set; }
+        public string? DatabaseServerPassword { get; set; }
+
+        [Aliases("-l")]
+        public string? License { get; set; }
     }
 }

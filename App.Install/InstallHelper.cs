@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+
 using App.Core.Models;
 using App.Core.Services;
 
@@ -15,6 +16,12 @@ namespace App.Install
     {
         private static readonly Random random = new Random();
         private static readonly IDictionary<int, string> randomStringCache = new Dictionary<int, string>();
+
+        public static string HotfixDownloadCacheKeySuffix => "_download";
+
+        public static string HotfixUnpackCacheKeySuffix => "_unpack";
+
+        public static string CertificateCacheKey => "certificateThumbprint";
 
         internal static async Task DownloadFile(HttpClient httpClient, string requestUri, string downloadPath, IOutputService output, string message)
         {

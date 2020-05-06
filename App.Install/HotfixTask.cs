@@ -7,7 +7,6 @@ using App.Core;
 using App.Core.Models;
 using App.Core.Services;
 
-using static App.Install.Constants;
 using static App.Install.InstallHelper;
 
 namespace App.Install
