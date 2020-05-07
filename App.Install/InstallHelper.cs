@@ -52,7 +52,7 @@ namespace App.Install
             }
         }
 
-        internal static string GetNextUnboundIpAddress(ServerManager iisManager, KenticoVersion version, params string[] blacklist)
+        internal static string GetNextUnboundIpAddress(ServerManager iisManager, KenticoVersion version, params string?[] blacklist)
         {
             var ipAddressFragment = $"127.{version.Major}.{version.Hotfix}.";
 
@@ -65,10 +65,9 @@ namespace App.Install
 
             while (true)
             {
-                index++;
-
-                if (allBoundIpAddresses.Any(ipAddress => ipAddress.Equals(ipAddressFragment + index)))
+                if (allBoundIpAddresses.Any(ipAddress => ipAddress != null && ipAddress.Equals(ipAddressFragment + index)))
                 {
+                    index++;
                     continue;
                 }
 

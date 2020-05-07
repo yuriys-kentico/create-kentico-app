@@ -16,11 +16,11 @@ namespace App.Infrastructure
 
         public string GetInstallerUri(KenticoVersion? version = default)
         {
-            version ??= settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             var baseUri = $"https://download.kentico.com/Kentico_{version.Major}_{version.Minor}";
 
-            if (settings.Source.HasValue && settings.Source.Value)
+            if (settings.Source ?? false)
             {
                 return version.Major switch
                 {
@@ -36,14 +36,14 @@ namespace App.Infrastructure
 
         public string GetSetupPath(KenticoVersion? version = default)
         {
-            version ??= settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             return @$"{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}\Kentico\{version.Major}.{version.Minor}";
         }
 
         public string GetSolutionPath(string? appName = default)
         {
-            appName ??= settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
+            appName ??= settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
 
             return @$"C:\inetpub\wwwroot\{appName}";
         }
@@ -55,11 +55,11 @@ namespace App.Infrastructure
 
         public string GetHotfixUri(KenticoVersion? version = default)
         {
-            version ??= settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             var baseUri = $"https://www.kentico.com/Downloads/HotFix/{version.Major}_{version.Minor}/HotFix_{version.Major}_{version.Minor}_{version.Hotfix}";
 
-            if (settings.Source.HasValue && settings.Source.Value)
+            if (settings.Source ?? false)
             {
                 return baseUri + "_src.exe";
             }

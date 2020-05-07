@@ -36,6 +36,8 @@ namespace App.Core.Models
         public KenticoVersion(int major) : this(major.ToString())
         {
         }
+
+        public override string ToString() => $"{Major}.{Minor}.{Hotfix}";
     }
 
     public class KenticoVersionConverter : TypeConverter
@@ -52,7 +54,7 @@ namespace App.Core.Models
                 return new KenticoVersion(stringValue);
             }
 
-            throw new InvalidOperationException($"'{value}' is not a string.");
+            throw new ArgumentException($"'{value}' is not a string.");
         }
     }
 }

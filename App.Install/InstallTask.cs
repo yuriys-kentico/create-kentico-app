@@ -24,12 +24,16 @@ namespace App.Install
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly ICacheService cache;
-        private readonly Func<IProcessService> process;
+        private readonly IProcessService process;
         private readonly IDatabaseService database;
         private readonly IKenticoPathService kenticoPath;
         private readonly HttpClient httpClient;
 
         public bool Source { get; set; }
+
+        public bool Template { get; set; }
+
+        public bool Mvc { get; set; }
 
         public InstallTask(
             Settings settings,
@@ -42,7 +46,7 @@ namespace App.Install
             this.terms = terms;
             output = services.OutputService();
             cache = services.CacheService();
-            process = services.ProcessService;
+            process = services.ProcessService();
             database = services.DatabaseService();
             kenticoPath = services.KenticoPathService();
             this.httpClient = httpClient;
@@ -52,7 +56,7 @@ namespace App.Install
         {
             output.Display(terms.InstallTaskStart);
 
-            settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
+            settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
             settings.Path ??= kenticoPath.GetSolutionPath();
             settings.Path = EnsureValidAppPath(settings.Path);
 
@@ -82,8 +86,12 @@ namespace App.Install
 
             using var iisManager = new ServerManager();
 
-            settings.AppDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version);
-            settings.AdminDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version, settings.AppDomain ?? "");
+            if (Mvc)
+            {
+                settings.AppDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version);
+            }
+
+            settings.AdminDomain ??= GetNextUnboundIpAddress(iisManager, settings.Version, settings.AppDomain);
 
             var versionUri = kenticoPath.GetInstallerUri();
 
@@ -93,7 +101,7 @@ namespace App.Install
             {
                 installDownloadPath = Path.GetTempFileName();
 
-                await DownloadFile(httpClient, versionUri, installDownloadPath, output, terms.Downloading);
+                await DownloadFile(httpClient, versionUri, installDownloadPath, output, string.Format(terms.DownloadingInstaller, settings.Version));
                 await cache.SetString(versionUri, installDownloadPath);
 
                 output.Display(terms.DownloadComplete);
@@ -109,8 +117,8 @@ namespace App.Install
             {
                 output.Display(terms.BeginSourceInstallOutput);
 
-                var sourceInstallProcess = process()
-                    .NewProcess(installDownloadPath)
+                var sourceInstallProcess = process
+                    .FromPath(installDownloadPath)
                     .InDirectory(Path.GetDirectoryName(installDownloadPath))
                     .WithArguments($"-o\"{settings.Path}\" -p\"{settings.SourcePassword}\" -y")
                     .Run();
@@ -128,8 +136,8 @@ namespace App.Install
 
             output.Display(terms.BeginInstallOutput);
 
-            var installProcess = process()
-                .NewProcess(installDownloadPath)
+            var installProcess = process
+                .FromPath(installDownloadPath)
                 .InDirectory(Path.GetDirectoryName(installDownloadPath))
                 .WithArguments($"{Path.GetFileName(installXmlPath)}")
                 .Run();
@@ -140,8 +148,8 @@ namespace App.Install
                 {
                     output.Display(terms.BeginUninstallOutput);
 
-                    var uninstallProcess = process()
-                        .NewProcess(installDownloadPath)
+                    var uninstallProcess = process
+                        .FromPath(installDownloadPath)
                         .WithArguments("-u")
                         .Run();
 
@@ -149,8 +157,8 @@ namespace App.Install
 
                     Directory.Delete(setupPath, true);
 
-                    installProcess = process()
-                        .NewProcess(installDownloadPath)
+                    installProcess = process
+                        .FromPath(installDownloadPath)
                         .InDirectory(Path.GetDirectoryName(installDownloadPath))
                         .WithArguments($"{Path.GetFileName(installXmlPath)}")
                         .Run();
@@ -256,14 +264,7 @@ namespace App.Install
                         new XAttribute("TargetFolder", settings.Path),
                         new XAttribute("KillRunningProcesses", true)
                     ),
-                    new XElement("Sql",
-                        new XAttribute("InstallDatabase", true),
-                        new XAttribute("Server", settings.DatabaseServerName),
-                        new XAttribute("Database", settings.DatabaseName),
-                        new XAttribute("Authentication", "SQL"),
-                        new XAttribute("SqlName", settings.DatabaseServerUser),
-                        new XAttribute("SqlPswd", settings.DatabaseServerPassword)
-                    ),
+                    GetSqlElement(),
                     GetWebSitesElement(),
                     new XElement("Modules",
                         new XAttribute("type", "InstallAll")
@@ -283,7 +284,7 @@ namespace App.Install
 
         private XElement GetSetupElement(string setupPath)
         {
-            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            settings.Version = settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             return settings.Version.Major switch
             {
@@ -309,25 +310,71 @@ namespace App.Install
                         new XAttribute("OpenAfterInstall", false),
                         new XAttribute("RegisterToIIS", false)
                     ),
-                _ => throw new ArgumentOutOfRangeException($"Version '{settings.Version.Major}' has no supported XML configuration."),
+                _ => throw new ArgumentOutOfRangeException($"Version '{settings.Version.Major}' has no supported XML configuration for the Setup element."),
             };
+        }
+
+        private XElement GetSqlElement()
+        {
+            if (!string.IsNullOrWhiteSpace(settings.DatabaseServerUser))
+            {
+                settings.DatabaseServerPassword = settings.DatabaseServerPassword ?? throw new ArgumentNullException(nameof(settings.DatabaseServerPassword), $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set.");
+
+                return new XElement("Sql",
+                    new XAttribute("InstallDatabase", true),
+                    new XAttribute("Server", settings.DatabaseServerName),
+                    new XAttribute("Database", settings.DatabaseName),
+                    new XAttribute("Authentication", "SQL"),
+                    new XAttribute("SqlName", settings.DatabaseServerUser),
+                    new XAttribute("SqlPswd", settings.DatabaseServerPassword)
+                );
+            }
+            else
+            {
+                return new XElement("Sql",
+                    new XAttribute("InstallDatabase", true),
+                    new XAttribute("Server", settings.DatabaseServerName),
+                    new XAttribute("Database", settings.DatabaseName),
+                    new XAttribute("Authentication", "Windows")
+                );
+            }
         }
 
         private XElement? GetWebSitesElement()
         {
-            if (string.IsNullOrWhiteSpace(settings.AppTemplate))
+            if (!Template)
             {
                 return null;
             }
 
-            return new XElement("WebSites",
-                new XElement("WebSite",
-                    new XAttribute("domain", settings.AdminDomain),
-                    new XAttribute("displayname", settings.Name),
-                    new XAttribute("webtemplatename", settings.AppTemplate),
-                    new XAttribute("projectdirectoryname", settings.Name)
-                )
-            );
+            settings.Version = settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
+
+            return settings.Version.Major switch
+            {
+                10 => new XElement("WebSites",
+                    new XElement("WebSite",
+                        new XAttribute("domain", settings.AdminDomain),
+                        new XAttribute("displayname", settings.Name),
+                        new XAttribute("webtemplatename", settings.AppTemplate)
+                    )
+                ),
+                11 => new XElement("WebSites",
+                    new XElement("WebSite",
+                        new XAttribute("domain", settings.AdminDomain),
+                        new XAttribute("displayname", settings.Name),
+                        new XAttribute("webtemplatename", settings.AppTemplate)
+                    )
+                ),
+                12 => new XElement("WebSites",
+                    new XElement("WebSite",
+                        new XAttribute("domain", settings.AdminDomain),
+                        new XAttribute("displayname", settings.Name),
+                        new XAttribute("webtemplatename", settings.AppTemplate),
+                        new XAttribute("projectdirectoryname", settings.Name)
+                    )
+                ),
+                _ => throw new ArgumentOutOfRangeException($"Version '{settings.Version.Major}' has no supported XML configuration for the WebSites element."),
+            };
         }
 
         private XElement? GetLicensesElement()

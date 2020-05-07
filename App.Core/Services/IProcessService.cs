@@ -4,7 +4,7 @@ namespace App.Core.Services
 {
     public interface IProcessService
     {
-        public IProcessService NewProcess(string processPath);
+        public IProcessService FromPath(string processPath);
 
         public IProcessService InDirectory(string? directoryPath);
 

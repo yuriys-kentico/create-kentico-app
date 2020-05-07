@@ -17,8 +17,9 @@ namespace App.Install
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly ICacheService cache;
-        private readonly Func<IProcessService> process;
+        private readonly IProcessService process;
         private readonly IKenticoPathService kenticoPath;
+        private readonly Func<INugetService> nuget;
         private readonly HttpClient httpClient;
 
         public HotfixTask(
@@ -32,8 +33,9 @@ namespace App.Install
             this.terms = terms;
             output = services.OutputService();
             cache = services.CacheService();
-            process = services.ProcessService;
+            process = services.ProcessService();
             kenticoPath = services.KenticoPathService();
+            nuget = services.NugetService;
             this.httpClient = httpClient;
         }
 
@@ -49,7 +51,7 @@ namespace App.Install
             {
                 hotfixDownloadPath = Path.GetTempFileName();
 
-                await DownloadFile(httpClient, hotfixUri, hotfixDownloadPath, output, terms.Downloading);
+                await DownloadFile(httpClient, hotfixUri, hotfixDownloadPath, output, string.Format(terms.DownloadingHotfix, settings.Version));
                 await cache.SetString(hotfixUri + HotfixDownloadCacheKeySuffix, hotfixDownloadPath);
 
                 output.Display(terms.DownloadComplete);
@@ -75,8 +77,8 @@ namespace App.Install
             {
                 output.Display(terms.UnpackingHotfix);
 
-                var hotfixUnpackProcess = process()
-                    .NewProcess(hotfixDownloadPath)
+                var hotfixUnpackProcess = process
+                    .FromPath(hotfixDownloadPath)
                     .InDirectory(Path.GetDirectoryName(hotfixUnpackPath))
                     .WithArguments($"/verysilent /dir=\"{hotfixUnpackPath}\"")
                     .Run();
@@ -90,13 +92,20 @@ namespace App.Install
 
             output.Display(terms.BeginHotfixOutput);
 
-            var hotfixProcess = process()
-                .NewProcess(hotfixPath)
+            var hotfixProcess = process
+                .FromPath(hotfixPath)
                 .InDirectory(Path.GetDirectoryName(hotfixPath))
                 .WithArguments($"/silentpath=\"{settings.Path}\"")
                 .Run();
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
+
+            settings.Version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
+
+            if (settings.Version.Major == 12 && settings.Version.Hotfix > 29)
+            {
+                await nuget().InstallPackage("Kentico.Libraries", settings.Version.ToString());
+            }
         }
     }
 }

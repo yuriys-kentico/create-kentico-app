@@ -4,5 +4,6 @@ namespace App.Core
 {
     public interface IIisTask : ITask
     {
+        bool Mvc { get; set; }
     }
 }

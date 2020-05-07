@@ -24,6 +24,8 @@ namespace App.Install
         private readonly ICacheService cache;
         private readonly IKenticoPathService kenticoPath;
 
+        public bool Mvc { get; set; }
+
         public IisTask(
             Settings settings,
             Terms terms,
@@ -43,9 +45,9 @@ namespace App.Install
 
             using var iisManager = new ServerManager();
 
-            settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
-            settings.Path ??= kenticoPath.GetSolutionPath(settings.Name);
-            settings.Version = settings.Version ?? throw new ArgumentException($"'{nameof(settings.Version)}' must be set.");
+            settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
+            settings.Path ??= kenticoPath.GetSolutionPath();
+            settings.Version = settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
             store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);
@@ -74,10 +76,12 @@ namespace App.Install
 
             store.Close();
 
-            var siteName = EnsureValidSiteName(iisManager.Sites, settings.Name);
+            var adminSuffix = "_Admin";
+
+            var siteName = EnsureValidSiteName(iisManager.Sites, settings.Name, adminSuffix);
 
             var adminSite = iisManager.Sites.Add(
-                $"{siteName}_Admin",
+                siteName + adminSuffix,
                 settings.AdminDomain + ":443:",
                 Path.Combine(settings.Path, "CMS"),
                 certificate.GetCertHash(),
@@ -91,9 +95,9 @@ namespace App.Install
 
             adminSite.ApplicationDefaults.ApplicationPoolName = appPool.Name;
 
-            if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
+            if (Mvc)
             {
-                settings.AppDomain = settings.AppDomain ?? throw new InvalidOperationException($"'{nameof(settings.AppDomain)}' must be set if '{nameof(settings.AppTemplate)}' is set.");
+                settings.AppDomain = settings.AppDomain ?? throw new ArgumentNullException(nameof(settings.AppDomain), $"Must be set if '{settings.AppTemplate}' is an MVC template.");
 
                 var appSite = iisManager.Sites.Add(
                     siteName,
@@ -110,9 +114,9 @@ namespace App.Install
             iisManager.CommitChanges();
         }
 
-        private string EnsureValidSiteName(SiteCollection sites, string siteName)
+        private string EnsureValidSiteName(SiteCollection sites, string siteName, string suffix)
         {
-            if (sites.Any(site => site.Name.Equals(siteName)))
+            if (sites.Any(site => site.Name.Equals(siteName + suffix)))
             {
                 siteName += $"_{GetRandomString(10)}";
             }

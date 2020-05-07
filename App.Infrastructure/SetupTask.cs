@@ -47,9 +47,21 @@ namespace App.Infrastructure
 
             output.Display(terms.Setup);
 
-            if (settings.Source.HasValue && settings.Source.Value)
+            if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
             {
-                settings.SourcePassword = settings.SourcePassword ?? throw new InvalidOperationException($"'{nameof(settings.SourcePassword)}' must be set if '{nameof(settings.Source)}' is 'true'.");
+                installTask.Template = true;
+
+                if (settings.AppTemplate.EndsWith("Mvc"))
+                {
+                    installTask.Mvc = true;
+                    iisSiteTask.Mvc = true;
+                    databaseTask.Mvc = true;
+                }
+            }
+
+            if (settings.Source ?? false)
+            {
+                settings.SourcePassword = settings.SourcePassword ?? throw new ArgumentNullException(nameof(settings.SourcePassword), $"Must be set if '{nameof(settings.Source)}' is 'true'.");
 
                 installTask.Source = true;
 
@@ -78,7 +90,11 @@ namespace App.Infrastructure
             output.Display(terms.InstallComplete);
             output.Display(string.Format(terms.SolutionPath, settings.Path));
             output.Display(string.Format(terms.AdminPath, settings.AdminDomain));
-            output.Display(string.Format(terms.AppPath, settings.AppDomain));
+
+            if (installTask.Mvc)
+            {
+                output.Display(string.Format(terms.AppPath, settings.AppDomain));
+            }
         }
     }
 }

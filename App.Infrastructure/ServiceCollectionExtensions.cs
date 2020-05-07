@@ -19,6 +19,7 @@ namespace App.Infrastructure
                 .AddTransient<IProcessService, ProcessService>()
                 .AddTransient<IDatabaseService, DatabaseService>()
                 .AddTransient<IKenticoPathService, KenticoPathService>()
+                .AddTransient<INugetService, NugetService>()
                 .AddSingleton<ISetupTask, SetupTask>()
                 .AddSqliteCache(options =>
                 {

@@ -12,7 +12,7 @@
 
         public string UsingLatestVersion => "Using latest version.";
 
-        public string Downloading => "Downloading...";
+        public string DownloadingInstaller => "Downloading installer for {0}...";
 
         public string DownloadComplete => "Download complete!";
 
@@ -29,6 +29,8 @@
         public string HotfixNotSpecified => "Hotfix not specified.";
 
         public string GettingLatestHotfix => "Getting latest hotfix...";
+
+        public string DownloadingHotfix => "Downloading hotfix for {0}...";
 
         public string UnpackingHotfix => "Unpacking hotfix...";
 

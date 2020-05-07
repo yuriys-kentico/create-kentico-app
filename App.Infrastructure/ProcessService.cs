@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 using App.Core.Services;
 
@@ -7,15 +6,9 @@ namespace App.Infrastructure
 {
     public class ProcessService : IProcessService
     {
-        private Process? process;
+        private Process Process = new Process();
 
-        private Process Process
-        {
-            get => process ?? throw new InvalidOperationException($"Call '{nameof(NewProcess)}' first.");
-            set => process = value;
-        }
-
-        public IProcessService NewProcess(string processPath)
+        public IProcessService FromPath(string processPath)
         {
             Process = new Process
             {
@@ -46,7 +39,11 @@ namespace App.Infrastructure
             Process.Start();
             Process.WaitForExit();
 
-            return Process;
+            var oldProcess = Process;
+
+            Process = new Process();
+
+            return oldProcess;
         }
     }
 }

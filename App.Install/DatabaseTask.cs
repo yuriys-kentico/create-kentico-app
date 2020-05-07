@@ -14,6 +14,8 @@ namespace App.Install
         private readonly IOutputService output;
         private readonly IDatabaseService database;
 
+        public bool Mvc { get; set; }
+
         public DatabaseTask(
             Settings settings,
             Terms terms,
@@ -30,13 +32,16 @@ namespace App.Install
         {
             output.Display(terms.DatabaseTaskStart);
 
-            settings.Name = settings.Name ?? throw new ArgumentException($"'{nameof(settings.Name)}' must be set.");
-            settings.DatabaseName = settings.DatabaseName ?? throw new ArgumentException($"'{nameof(settings.DatabaseName)}' must be set.");
+            settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
+            settings.DatabaseName = settings.DatabaseName ?? throw new ArgumentNullException(nameof(settings.DatabaseName));
 
-            await database
-                .From($"{settings.DatabaseName}.dbo.CMS_Site")
-                .Where("SiteName", "=", settings.Name)
-                .Update(new { SitePresentationURL = $"https://{settings.AppDomain}" });
+            if (Mvc)
+            {
+                await database
+                    .From($"{settings.DatabaseName}.dbo.CMS_Site")
+                    .Where("SiteName", "=", settings.Name)
+                    .Update(new { SitePresentationURL = $"https://{settings.AppDomain}" });
+            }
         }
     }
 }

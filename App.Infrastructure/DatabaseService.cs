@@ -1,11 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 using App.Core.Models;
 using App.Core.Services;
-using Dapper;
+
 using SqlKata;
 using SqlKata.Compilers;
 using SqlKata.Execution;
@@ -22,10 +23,18 @@ namespace App.Infrastructure
         {
             var connectionStringBuilder = new SqlConnectionStringBuilder
             {
-                UserID = settings.DatabaseServerUser,
-                Password = settings.DatabaseServerPassword,
                 DataSource = settings.DatabaseServerName
             };
+
+            if (!string.IsNullOrWhiteSpace(settings.DatabaseServerUser))
+            {
+                connectionStringBuilder.UserID = settings.DatabaseServerUser;
+                connectionStringBuilder.Password = settings.DatabaseServerPassword ?? throw new ArgumentNullException(nameof(settings.DatabaseServerPassword), $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set.");
+            }
+            else
+            {
+                connectionStringBuilder.IntegratedSecurity = true;
+            }
 
             database = new QueryFactory(new SqlConnection(connectionStringBuilder.ConnectionString), new SqlServerCompiler());
         }
