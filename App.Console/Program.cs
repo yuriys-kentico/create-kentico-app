@@ -26,8 +26,6 @@ namespace App
             {
                 serviceProvider.GetRequiredService<IOutputService>().Display(ex.ToString());
             }
-
-            Console.ReadKey();
         }
 
         private static ServiceProvider ConfigureServices(string[] args)

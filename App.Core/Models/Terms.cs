@@ -4,6 +4,36 @@
     {
         public string CreateKenticoAppVersion => "create-kentico-app v";
 
+        public string Help => "Welcome to create-kentico-app! A way to easily start a Kentico project. This is a CLI tool. The available parameters:";
+
+        public string HelpHelp => "Display this help text and ignore any other parameters.";
+
+        public string HelpName => "App name.";
+
+        public string HelpPath => "Solution path. Must be non-existent or empty.";
+
+        public string HelpAdminDomain => "Admin domain. Must be unique in local IIS and different from appDomain.";
+
+        public string HelpAppDomain => "App domain. Must be unique in local IIS and different from adminDomain.";
+
+        public string HelpAppTemplate => "App template. Must be a template that comes with the Kentico installer.";
+
+        public string HelpVersion => "Version. Must exist as a version of Kentico. Can be a partial version like 12. If 12.0.X, must be greater than 12.0.29.";
+
+        public string HelpSource => "Install source code. Must also set sourcePassword.";
+
+        public string HelpSourcePassword => "Source code password.";
+
+        public string HelpDatabaseName => "Database name. Must be unique in database server.";
+
+        public string HelpDatabaseServerName => "Database server name.";
+
+        public string HelpDatabaseServerUser => "Database server user. Must also set databaseServerPassword. If not set, Windows Authentication will be used.";
+
+        public string HelpDatabaseServerPassword => "Database server password.";
+
+        public string HelpLicense => "License key. Must be valid for the version if version is set. If version is not set, must be valid for the latest version.";
+
         public string Setup => "Setting up...";
 
         public string InstallTaskStart => "Starting installation...";

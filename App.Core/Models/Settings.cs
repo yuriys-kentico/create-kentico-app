@@ -2,6 +2,9 @@
 {
     public class Settings
     {
+        [Aliases("-h")]
+        public bool? Help { get; set; }
+
         [Aliases("-n")]
         public string? Name { get; set; }
 

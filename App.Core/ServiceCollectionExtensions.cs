@@ -13,8 +13,7 @@ namespace App.Core
         public static IServiceCollection AddCore(this IServiceCollection serviceCollection, string[] args)
         {
             var aliasMappings = typeof(Settings)
-                .GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                .Where(property => property.GetCustomAttribute<AliasesAttribute>() != null)
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .SelectMany(property => property.GetCustomAttribute<AliasesAttribute>()?
                     .Aliases
                     .Select(alias => (alias, property.Name)))
@@ -31,7 +30,8 @@ namespace App.Core
             serviceCollection
                 .AddSingleton(settings)
                 .AddSingleton(new Terms())
-                .AddSingleton(serviceProvider => new Services.Services(serviceProvider));
+                .AddSingleton(serviceProvider => new Services.Services(serviceProvider))
+                .AddSingleton(serviceProvider => new Tasks.Tasks(serviceProvider));
 
             return serviceCollection;
         }

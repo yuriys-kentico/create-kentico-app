@@ -1,7 +1,9 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using App.Core.Services;
-
+using ConsoleTables;
 using ShellProgressBar;
 
 namespace App.Infrastructure
@@ -38,6 +40,17 @@ namespace App.Infrastructure
             if (!string.IsNullOrWhiteSpace(message))
             {
                 Console.WriteLine($"{DateTime.Now:[yyyy-MM-dd HH:mm:ss]} {message}");
+            }
+        }
+
+        public void DisplayTable<T>(IEnumerable<T> rows)
+        {
+            if (rows.Any())
+            {
+                ConsoleTable
+                    .From(rows)
+                    .Configure(options => options.EnableCount = false)
+                    .Write();
             }
         }
     }

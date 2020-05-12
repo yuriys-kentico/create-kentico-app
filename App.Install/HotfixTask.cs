@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading.Tasks;
 
 using App.Core;
@@ -111,8 +112,14 @@ namespace App.Install
 
                 output.Display(terms.RebuildingSolution);
 
+                var buildServicePath = Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!,
+                    "BuildService",
+                    "BuildService.exe"
+                    );
+
                 var buildService = process
-                    .FromPath(Path.Combine(Environment.CurrentDirectory, "BuildService", "BuildService.exe"))
+                    .FromPath(buildServicePath)
                     .WithArguments(Path.Combine(settings.Path, $"{settings.Name}.sln"))
                     .Run();
 

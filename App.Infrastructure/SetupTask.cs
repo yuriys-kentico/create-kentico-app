@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 using App.Core;
 using App.Core.Models;
 using App.Core.Services;
+using App.Core.Tasks;
+using App.Infrastructure.Models;
 
 namespace App.Infrastructure
 {
@@ -14,29 +17,20 @@ namespace App.Infrastructure
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly IKenticoPathService kenticoPath;
-        private readonly IInstallTask installTask;
-        private readonly IHotfixTask hotfixTask;
-        private readonly IIisTask iisSiteTask;
-        private readonly IDatabaseTask databaseTask;
+        private readonly Tasks tasks;
 
         public SetupTask(
             Settings settings,
             Terms terms,
             Services services,
-            IInstallTask installTask,
-            IHotfixTask hotfixTask,
-            IIisTask iisSiteTask,
-            IDatabaseTask databaseTask
+            Tasks tasks
             )
         {
             this.settings = settings;
             this.terms = terms;
             output = services.OutputService();
             kenticoPath = services.KenticoPathService();
-            this.installTask = installTask;
-            this.hotfixTask = hotfixTask;
-            this.iisSiteTask = iisSiteTask;
-            this.databaseTask = databaseTask;
+            this.tasks = tasks;
         }
 
         public async Task Run()
@@ -45,7 +39,30 @@ namespace App.Infrastructure
                                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
                                .InformationalVersion);
 
+            if (settings.Help ?? false)
+            {
+                output.Display(terms.Help);
+
+                var rows = typeof(Settings)
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Select(property => new HelpRow
+                    {
+                        Name = $"--{property.Name}",
+                        Aliases = string.Join(',', property.GetCustomAttribute<AliasesAttribute>()?.Aliases.Select(alias => $"-{alias}") ?? new[] { "" }),
+                        Type = property.PropertyType.UnderlyingSystemType.Name,
+                        Description = typeof(Terms).GetProperty($"Help{property.Name}")?.GetValue(terms) as string
+                    });
+
+                output.DisplayTable(rows);
+
+                return;
+            }
+
             output.Display(terms.Setup);
+
+            var installTask = tasks.InstallTask();
+            var iisSiteTask = tasks.IisTask();
+            var databaseTask = tasks.DatabaseTask();
 
             if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
             {
@@ -81,7 +98,7 @@ namespace App.Infrastructure
 
             if (settings.Version?.Hotfix > 0)
             {
-                await hotfixTask.Run();
+                await tasks.HotfixTask().Run();
             }
 
             await iisSiteTask.Run();
