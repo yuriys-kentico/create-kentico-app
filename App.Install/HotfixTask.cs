@@ -43,6 +43,9 @@ namespace App.Install
         {
             output.Display(terms.HotfixTaskStart);
 
+            settings.Version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
+            settings.Path ??= settings.Path ?? throw new ArgumentNullException(nameof(settings.Path));
+
             var hotfixUri = kenticoPath.GetHotfixUri();
 
             var hotfixDownloadPath = await cache.GetString(hotfixUri + HotfixDownloadCacheKeySuffix);
@@ -100,11 +103,20 @@ namespace App.Install
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
 
-            settings.Version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
-
             if (settings.Version.Major == 12 && settings.Version.Hotfix > 29)
             {
+                output.Display(terms.UpdatingKenticoLibraries);
+
                 await nuget().InstallPackage("Kentico.Libraries", settings.Version.ToString());
+
+                output.Display(terms.RebuildingSolution);
+
+                var buildService = process
+                    .FromPath(Path.Combine(Environment.CurrentDirectory, "BuildService", "BuildService.exe"))
+                    .WithArguments(Path.Combine(settings.Path, $"{settings.Name}.sln"))
+                    .Run();
+
+                if (buildService.ExitCode != 0) throw new Exception("Build process failed!");
             }
         }
     }

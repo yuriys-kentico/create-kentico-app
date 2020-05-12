@@ -6,7 +6,14 @@ namespace App.Infrastructure
 {
     public class ProcessService : IProcessService
     {
-        private Process Process = new Process();
+        private readonly IOutputService output;
+
+        private Process Process { get; set; } = new Process();
+
+        public ProcessService(Services services)
+        {
+            output = services.OutputService();
+        }
 
         public IProcessService FromPath(string processPath)
         {
@@ -36,7 +43,11 @@ namespace App.Infrastructure
 
         public Process Run()
         {
+            Process.StartInfo.RedirectStandardOutput = true;
+            Process.OutputDataReceived += (sender, e) => output.Display(e.Data);
+
             Process.Start();
+            Process.BeginOutputReadLine();
             Process.WaitForExit();
 
             var oldProcess = Process;

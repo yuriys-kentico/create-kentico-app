@@ -35,7 +35,10 @@ namespace App.Infrastructure
 
         public void Display(string message)
         {
-            Console.WriteLine($"{DateTime.Now:[yyyy-MM-dd HH:mm:ss]} {message}");
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                Console.WriteLine($"{DateTime.Now:[yyyy-MM-dd HH:mm:ss]} {message}");
+            }
         }
     }
 }

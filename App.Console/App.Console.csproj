@@ -19,4 +19,8 @@
     <ProjectReference Include="..\App.Infrastructure\App.Infrastructure.csproj" />
     <ProjectReference Include="..\App.Install\App.Install.csproj" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /y &quot;$(ProjectDir)..\BuildService\bin\$(ConfigurationName)\*&quot; &quot;$(OutDir)BuildService\&quot;" />
+  </Target>
 </Project>

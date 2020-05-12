@@ -38,6 +38,10 @@
 
         public string BeginHotfixOutput => "Showing output from hotfixer...";
 
+        public string UpdatingKenticoLibraries => "Updating Kentico.Libraries NuGet package...";
+
+        public string RebuildingSolution => "Rebuilding solution...";
+
         public string IisTaskStart => "Starting IIS registration...";
 
         public string CreatedNewCertificate => "Created new certificate.";
