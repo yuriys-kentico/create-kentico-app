@@ -19,7 +19,7 @@ create-kentico-app -n AppName -t DancingGoatMvc -ds ServerName -l DOMAIN:localho
 ## Parameters
 
 | Key | Aliases | Type | Required | Description |
-| --------------------- |:---------:|:---------:|:---------:|:----------------------:|
+|-|:-:|:-:|:-:|:-|
 | `--help` | `-h` | `boolean` | No | Display help text and ignore any other parameters. |
 | `--name` | `-n` | `string` | Yes | App name. |
 | `--databaseServerName` | `-ds`| `string` | Yes | Database server name. |
