@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace App.Core.Tasks
 {
-    public class Tasks
+    public class TaskResolver
     {
         private readonly IServiceProvider serviceProvider;
 
-        public Tasks(
+        public TaskResolver(
             IServiceProvider serviceProvider
             )
         {

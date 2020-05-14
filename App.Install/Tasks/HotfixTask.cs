@@ -10,7 +10,7 @@ using App.Core.Services;
 
 using static App.Install.InstallHelper;
 
-namespace App.Install
+namespace App.Install.Tasks
 {
     public class HotfixTask : IHotfixTask
     {
@@ -20,13 +20,13 @@ namespace App.Install
         private readonly ICacheService cache;
         private readonly IProcessService process;
         private readonly IKenticoPathService kenticoPath;
-        private readonly Func<INugetService> nuget;
+        private readonly INugetService nuget;
         private readonly HttpClient httpClient;
 
         public HotfixTask(
             Settings settings,
             Terms terms,
-            Services services,
+            ServiceResolver services,
             HttpClient httpClient
             )
         {
@@ -36,7 +36,7 @@ namespace App.Install
             cache = services.CacheService();
             process = services.ProcessService();
             kenticoPath = services.KenticoPathService();
-            nuget = services.NugetService;
+            nuget = services.NugetService();
             this.httpClient = httpClient;
         }
 
@@ -108,7 +108,7 @@ namespace App.Install
             {
                 output.Display(terms.UpdatingKenticoLibraries);
 
-                await nuget().InstallPackage("Kentico.Libraries", settings.Version.ToString());
+                await nuget.InstallPackage("Kentico.Libraries", settings.Version.ToString());
 
                 output.Display(terms.RebuildingSolution);
 

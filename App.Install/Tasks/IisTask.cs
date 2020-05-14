@@ -14,7 +14,7 @@ using Microsoft.Web.Administration;
 
 using static App.Install.InstallHelper;
 
-namespace App.Install
+namespace App.Install.Tasks
 {
     public class IisTask : IIisTask
     {
@@ -29,7 +29,7 @@ namespace App.Install
         public IisTask(
             Settings settings,
             Terms terms,
-            Services services
+            ServiceResolver services
             )
         {
             this.settings = settings;

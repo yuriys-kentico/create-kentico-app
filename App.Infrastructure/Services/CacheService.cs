@@ -5,7 +5,7 @@ using App.Core.Services;
 
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class CacheService : ICacheService
     {

@@ -16,7 +16,7 @@ using Microsoft.Web.Administration;
 
 using static App.Install.InstallHelper;
 
-namespace App.Install
+namespace App.Install.Tasks
 {
     public class InstallTask : IInstallTask
     {
@@ -38,7 +38,7 @@ namespace App.Install
         public InstallTask(
             Settings settings,
             Terms terms,
-            Services services,
+            ServiceResolver services,
             HttpClient httpClient
             )
         {

@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+
 using App.Core.Services;
+
 using ConsoleTables;
+
 using ShellProgressBar;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class OutputService : IOutputService
     {

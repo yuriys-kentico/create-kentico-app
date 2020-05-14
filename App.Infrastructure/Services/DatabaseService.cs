@@ -11,7 +11,7 @@ using SqlKata;
 using SqlKata.Compilers;
 using SqlKata.Execution;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class DatabaseService : IDatabaseService
     {
@@ -23,13 +23,17 @@ namespace App.Infrastructure
         {
             var connectionStringBuilder = new SqlConnectionStringBuilder
             {
-                DataSource = settings.DatabaseServerName
+                DataSource = settings.DatabaseServerName ?? throw new ArgumentNullException(nameof(settings.DatabaseServerName))
             };
 
             if (!string.IsNullOrWhiteSpace(settings.DatabaseServerUser))
             {
                 connectionStringBuilder.UserID = settings.DatabaseServerUser;
-                connectionStringBuilder.Password = settings.DatabaseServerPassword ?? throw new ArgumentNullException(nameof(settings.DatabaseServerPassword), $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set.");
+                connectionStringBuilder.Password = settings.DatabaseServerPassword
+                    ?? throw new ArgumentNullException(
+                        nameof(settings.DatabaseServerPassword),
+                        $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set."
+                    );
             }
             else
             {

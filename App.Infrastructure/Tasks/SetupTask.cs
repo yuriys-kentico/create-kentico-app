@@ -9,7 +9,7 @@ using App.Core.Services;
 using App.Core.Tasks;
 using App.Infrastructure.Models;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Tasks
 {
     public class SetupTask : ISetupTask
     {
@@ -17,13 +17,13 @@ namespace App.Infrastructure
         private readonly Terms terms;
         private readonly IOutputService output;
         private readonly IKenticoPathService kenticoPath;
-        private readonly Tasks tasks;
+        private readonly TaskResolver tasks;
 
         public SetupTask(
             Settings settings,
             Terms terms,
-            Services services,
-            Tasks tasks
+            ServiceResolver services,
+            TaskResolver tasks
             )
         {
             this.settings = settings;
@@ -45,12 +45,40 @@ namespace App.Infrastructure
 
                 var rows = typeof(Settings)
                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Select(property => new HelpRow
+                    .Select(property =>
                     {
-                        Name = $"--{property.Name}",
-                        Aliases = string.Join(',', property.GetCustomAttribute<AliasesAttribute>()?.Aliases.Select(alias => $"-{alias}") ?? new[] { "" }),
-                        Type = property.PropertyType.UnderlyingSystemType.Name,
-                        Description = typeof(Terms).GetProperty($"Help{property.Name}")?.GetValue(terms) as string
+                        var typeRequiredDescription = (typeof(Terms).GetProperty($"Help{property.Name}")?.GetValue(terms) as string)?.Split('|');
+
+                        var type = string.Empty;
+                        var required = string.Empty;
+                        var description = string.Empty;
+
+                        switch (typeRequiredDescription?.Length)
+                        {
+                            case 1:
+                                description = typeRequiredDescription[0];
+                                break;
+
+                            case 2:
+                                type = typeRequiredDescription[0];
+                                description = typeRequiredDescription[1];
+                                break;
+
+                            case 3:
+                                type = typeRequiredDescription[0];
+                                required = typeRequiredDescription[1];
+                                description = typeRequiredDescription[2];
+                                break;
+                        }
+
+                        return new HelpRow
+                        {
+                            Name = $"--{property.Name[0].ToString().ToLower()}{property.Name.Substring(1)}",
+                            Aliases = property.GetCustomAttribute<AliasesAttribute>()?.Aliases.Aggregate((a, b) => $"{a}, {b}"),
+                            Type = type,
+                            Required = required,
+                            Description = description
+                        };
                     });
 
                 output.DisplayTable(rows);

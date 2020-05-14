@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 
+using App.Core.Services;
+
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
-namespace BuildService
+namespace App.Infrastructure.Services
 {
     public class BuildService : IBuildService
     {

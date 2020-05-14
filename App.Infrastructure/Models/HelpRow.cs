@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace App.Infrastructure.Models
+﻿namespace App.Infrastructure.Models
 {
     internal class HelpRow
     {
         public string Name { get; set; } = string.Empty;
 
-        public string Aliases { get; set; } = string.Empty;
+        public string? Aliases { get; set; }
 
-        public string Type { get; set; } = nameof(String);
+        public string? Type { get; set; }
+
+        public string? Required { get; set; }
 
         public string? Description { get; set; }
     }

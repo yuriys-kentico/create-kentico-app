@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace App.Core.Services
 {
-    public class Services
+    public class ServiceResolver
     {
         private readonly IServiceProvider serviceProvider;
 
-        public Services(
+        public ServiceResolver(
             IServiceProvider serviceProvider
             )
         {

@@ -20,7 +20,7 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Resolver;
 using NuGet.Versioning;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class NugetService : INugetService
     {

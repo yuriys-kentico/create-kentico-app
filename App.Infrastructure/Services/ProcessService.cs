@@ -2,7 +2,7 @@
 
 using App.Core.Services;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class ProcessService : IProcessService
     {
@@ -10,7 +10,7 @@ namespace App.Infrastructure
 
         private Process Process { get; set; } = new Process();
 
-        public ProcessService(Services services)
+        public ProcessService(ServiceResolver services)
         {
             output = services.OutputService();
         }

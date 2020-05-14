@@ -3,7 +3,7 @@
 using App.Core.Models;
 using App.Core.Services;
 
-namespace App.Infrastructure
+namespace App.Infrastructure.Services
 {
     public class KenticoPathService : IKenticoPathService
     {

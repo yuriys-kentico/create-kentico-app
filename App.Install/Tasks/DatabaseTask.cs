@@ -5,7 +5,7 @@ using App.Core;
 using App.Core.Models;
 using App.Core.Services;
 
-namespace App.Install
+namespace App.Install.Tasks
 {
     public class DatabaseTask : IDatabaseTask
     {
@@ -19,7 +19,7 @@ namespace App.Install
         public DatabaseTask(
             Settings settings,
             Terms terms,
-            Services services
+            ServiceResolver services
             )
         {
             this.settings = settings;

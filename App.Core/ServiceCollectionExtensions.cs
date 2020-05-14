@@ -30,8 +30,8 @@ namespace App.Core
             serviceCollection
                 .AddSingleton(settings)
                 .AddSingleton(new Terms())
-                .AddSingleton(serviceProvider => new Services.Services(serviceProvider))
-                .AddSingleton(serviceProvider => new Tasks.Tasks(serviceProvider));
+                .AddSingleton(serviceProvider => new Services.ServiceResolver(serviceProvider))
+                .AddSingleton(serviceProvider => new Tasks.TaskResolver(serviceProvider));
 
             return serviceCollection;
         }

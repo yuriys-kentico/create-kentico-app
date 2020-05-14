@@ -1,4 +1,5 @@
 ﻿using App.Core;
+using App.Install.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 

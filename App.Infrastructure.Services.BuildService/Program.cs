@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace BuildService
+namespace App.Infrastructure.Services
 {
     internal class Program
     {

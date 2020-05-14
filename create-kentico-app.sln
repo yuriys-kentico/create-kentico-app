@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30011.22
@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Infrastructure", "App.I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Install", "App.Install\App.Install.csproj", "{A42280DF-25A5-4576-8930-76015A5B0BA1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildService", "BuildService\BuildService.csproj", "{6E4456BC-F293-459E-9412-C4D9D62FDB3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Infrastructure.Services.BuildService", "App.Infrastructure.Services.BuildService\App.Infrastructure.Services.BuildService.csproj", "{6E4456BC-F293-459E-9412-C4D9D62FDB3F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2D6B83B9-51FF-4E48-81EC-E6002574179D}"
 	ProjectSection(SolutionItems) = preProject
