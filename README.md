@@ -1,6 +1,22 @@
 # create-kentico-app
 
-A way to easily start a Kentico project. This is a CLI tool. The available parameters:
+A way to easily start a Kentico project. This is a CLI tool.
+
+## Installation
+
+```pwsh
+# Extract latest release NUPKG in a folder
+# In the folder run
+dotnet tool install -g --add-source ./ create-kentico-app
+```
+
+## Usage
+
+```pwsh
+create-kentico-app -n AppName -t DancingGoatMvc -ds ServerName -l DOMAIN:localhost`nPRODUCT:CX12`n ... # Full license key with newlines escaped as `n
+```
+
+## Parameters
 
 | Key | Aliases | Type | Required | Description |
 | --------------------- |:---------:|:---------:|:---------:|:----------------------:|
