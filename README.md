@@ -5,7 +5,7 @@ A way to easily start a Kentico project. This is a CLI tool.
 ## Installation
 
 ```pwsh
-# Extract latest release NUPKG in a folder
+# Download latest release NUPKG to a folder
 # In the folder run
 dotnet tool install -g --add-source ./ create-kentico-app
 ```
