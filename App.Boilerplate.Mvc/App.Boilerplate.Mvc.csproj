@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\App.Boilerplate.Core\App.Boilerplate.Core.csproj" />
+    <ProjectReference Include="..\App.Boilerplate.Infrastructure\App.Boilerplate.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
