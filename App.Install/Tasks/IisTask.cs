@@ -46,7 +46,7 @@ namespace App.Install.Tasks
             using var iisManager = new ServerManager();
 
             settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
-            settings.Path ??= kenticoPath.GetSolutionPath();
+            settings.Path = settings.Path ?? throw new ArgumentNullException(nameof(settings.Path));
             settings.Version = settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
@@ -97,7 +97,11 @@ namespace App.Install.Tasks
 
             if (Mvc)
             {
-                settings.AppDomain = settings.AppDomain ?? throw new ArgumentNullException(nameof(settings.AppDomain), $"Must be set if '{settings.AppTemplate}' is an MVC template.");
+                settings.AppDomain = settings.AppDomain
+                    ?? throw new ArgumentNullException(
+                            nameof(settings.AppDomain),
+                            $"Must be set if '{settings.AppTemplate}' is an MVC template."
+                        );
 
                 var appSite = iisManager.Sites.Add(
                     siteName,

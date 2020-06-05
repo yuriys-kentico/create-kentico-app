@@ -24,42 +24,56 @@ namespace App.Infrastructure.Services
 {
     public class NugetService : INugetService
     {
-        private readonly SourceRepositoryProvider sourceRepositoryProvider;
-        private readonly NuGetPackageManager packageManager;
-        private readonly PackagesConfigNuGetProject project;
+        private readonly Core.Models.Settings settings;
+        private Settings? nugetSettings;
+        private SourceRepositoryProvider? sourceRepositoryProvider;
+        private NuGetPackageManager? packageManager;
+        private PackagesConfigNuGetProject? project;
         private readonly EmptyNuGetProjectContext projectContext;
 
-        private readonly ResolutionContext resolutionContext = new ResolutionContext(
-                DependencyBehavior.Lowest,
-                includePrelease: true,
-                includeUnlisted: false,
-                VersionConstraints.None);
+        public string PackagesFolderPath => Path.Combine(
+            settings.Path ?? throw new ArgumentNullException(nameof(settings.Path))
+            , "packages"
+            );
 
-        public NugetService(Core.Models.Settings settings)
+        public Settings NugetSettings
         {
-            settings.Path = settings.Path ?? throw new ArgumentNullException(nameof(settings.Path));
-            settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
+            get => nugetSettings ??= new Settings(settings.Path);
+        }
 
-            var nugetSettings = new Settings(settings.Path);
-            var packagesFolderPath = Path.Combine(settings.Path, "packages");
+        public SourceRepositoryProvider SourceRepositoryProvider
+        {
+            get => sourceRepositoryProvider ??= new SourceRepositoryProvider(
+                        new PackageSourceProvider(nugetSettings),
+                        FactoryExtensionsV3.GetCoreV3(Repository.Provider)
+                        );
+        }
 
-            sourceRepositoryProvider = new SourceRepositoryProvider(
-                    new PackageSourceProvider(nugetSettings),
-                    FactoryExtensionsV3.GetCoreV3(Repository.Provider)
-                    );
+        public NuGetPackageManager PackageManager
+        {
+            get => packageManager ??= new NuGetPackageManager(
+                SourceRepositoryProvider,
+                NugetSettings,
+                PackagesFolderPath);
+        }
 
-            packageManager = new NuGetPackageManager(
-                sourceRepositoryProvider,
-                nugetSettings,
-                packagesFolderPath);
-
-            project = new PackagesConfigNuGetProject(
-                Path.Combine(settings.Path, settings.Name),
+        public PackagesConfigNuGetProject Project
+        {
+            get => project ??= new PackagesConfigNuGetProject(
+                Path.Combine(
+                    settings.Path ?? throw new ArgumentNullException(nameof(settings.Path)),
+                    settings.Name ?? throw new ArgumentNullException(nameof(settings.Name))
+                    ),
                 new Dictionary<string, object> {
-                    { "Name", packagesFolderPath },
+                    { "Name", PackagesFolderPath },
                     { "TargetFramework", NuGetFramework.AnyFramework }
                 }
                 );
+        }
+
+        public NugetService(Core.Models.Settings settings)
+        {
+            this.settings = settings;
 
             projectContext = new EmptyNuGetProjectContext
             {
@@ -74,12 +88,17 @@ namespace App.Infrastructure.Services
 
         public async Task InstallPackage(string id, string version)
         {
-            await packageManager.InstallPackageAsync(
-                project,
+            await PackageManager.InstallPackageAsync(
+                Project,
                 new PackageIdentity(id, new NuGetVersion(version)),
-                resolutionContext,
+                new ResolutionContext(
+                    DependencyBehavior.Lowest,
+                    includePrelease: true,
+                    includeUnlisted: false,
+                    VersionConstraints.None
+                ),
                 projectContext,
-                sourceRepositoryProvider.GetRepositories(),
+                SourceRepositoryProvider.GetRepositories(),
                 Array.Empty<SourceRepository>(),
                 CancellationToken.None
                 );

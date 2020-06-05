@@ -23,6 +23,8 @@ namespace App.Install.Tasks
         private readonly INugetService nuget;
         private readonly HttpClient httpClient;
 
+        public bool Mvc { get; set; }
+
         public HotfixTask(
             Settings settings,
             Terms terms,
@@ -104,7 +106,7 @@ namespace App.Install.Tasks
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
 
-            if (settings.Version.Major == 12 && settings.Version.Hotfix > 29)
+            if (Mvc && settings.Version.Major == 12 && settings.Version.Hotfix > 29)
             {
                 output.Display(terms.UpdatingKenticoLibraries);
 
@@ -114,7 +116,7 @@ namespace App.Install.Tasks
 
                 var buildServicePath = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!,
-                    "BuildService",
+                    "App.Infrastructure.Services.BuildService",
                     "BuildService.exe"
                     );
 

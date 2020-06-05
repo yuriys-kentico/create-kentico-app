@@ -57,7 +57,7 @@ namespace App.Infrastructure.Services
         {
             version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
-            var baseUri = $"https://www.kentico.com/Downloads/HotFix/{version.Major}_{version.Minor}/HotFix_{version.Major}_{version.Minor}_{version.Hotfix}";
+            var baseUri = $"https://download.kentico.com/CMSUpgrades/Hotfix/{version.Major}_{version.Minor}/HotFix_{version.Major}_{version.Minor}_{version.Hotfix}";
 
             if (settings.Source ?? false)
             {

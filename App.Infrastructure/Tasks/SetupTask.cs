@@ -88,9 +88,13 @@ namespace App.Infrastructure.Tasks
 
             output.Display(terms.Setup);
 
+            settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
+            settings.Path ??= kenticoPath.GetSolutionPath();
+
             var installTask = tasks.InstallTask();
             var iisSiteTask = tasks.IisTask();
             var databaseTask = tasks.DatabaseTask();
+            var hotfixTask = tasks.HotfixTask();
 
             if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
             {
@@ -101,12 +105,17 @@ namespace App.Infrastructure.Tasks
                     installTask.Mvc = true;
                     iisSiteTask.Mvc = true;
                     databaseTask.Mvc = true;
+                    hotfixTask.Mvc = true;
                 }
             }
 
             if (settings.Source ?? false)
             {
-                settings.SourcePassword = settings.SourcePassword ?? throw new ArgumentNullException(nameof(settings.SourcePassword), $"Must be set if '{nameof(settings.Source)}' is 'true'.");
+                settings.SourcePassword = settings.SourcePassword
+                    ?? throw new ArgumentNullException(
+                            nameof(settings.SourcePassword),
+                            $"Must be set if '{nameof(settings.Source)}' is 'true'."
+                        );
 
                 installTask.Source = true;
 

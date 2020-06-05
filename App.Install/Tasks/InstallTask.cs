@@ -318,7 +318,11 @@ namespace App.Install.Tasks
         {
             if (!string.IsNullOrWhiteSpace(settings.DatabaseServerUser))
             {
-                settings.DatabaseServerPassword = settings.DatabaseServerPassword ?? throw new ArgumentNullException(nameof(settings.DatabaseServerPassword), $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set.");
+                settings.DatabaseServerPassword = settings.DatabaseServerPassword
+                    ?? throw new ArgumentNullException(
+                            nameof(settings.DatabaseServerPassword),
+                            $"Must be set if '{nameof(settings.DatabaseServerUser)}' is set."
+                        );
 
                 return new XElement("Sql",
                     new XAttribute("InstallDatabase", true),
