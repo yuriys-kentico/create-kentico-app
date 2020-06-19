@@ -4,7 +4,7 @@ using System.Web.Routing;
 
 using Scrutor;
 
-namespace App.Boilerplate.Core.Models
+namespace App.Boilerplate.Core
 {
     public class ConfigureOptions
     {
@@ -17,5 +17,7 @@ namespace App.Boilerplate.Core.Models
         public Action<Bundle> ConfigureScripts { get; set; }
 
         public Action<RouteCollection> ConfigureRoutes { get; set; }
+
+        public (string, string) Http404ControllerAction { get; set; }
     }
 }

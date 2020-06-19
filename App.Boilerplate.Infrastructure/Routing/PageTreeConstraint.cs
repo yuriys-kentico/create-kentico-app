@@ -1,8 +1,6 @@
 ﻿using System.Web;
 using System.Web.Routing;
 
-using AngleSharp.Network.Default;
-
 using App.Boilerplate.Core.Context;
 using App.Boilerplate.Core.Routing;
 
@@ -32,19 +30,15 @@ namespace App.Boilerplate.Infrastructure.Routing
         {
             var path = values["url"] as string ?? httpContext.Request.Path;
 
-            var key = $"{siteContext.SiteId}|/{path.TrimStart('/').ToLower()}";
+            path = $"/{path.TrimStart('/')}".ToLower();
 
-            if (pageTreeRoutesRepository.RoutesDictionary.TryGetValue(key, out var getNodeRouteData))
+            var key = $"{siteContext.SiteId}|{path}";
+
+            if (pageTreeRoutesRepository.RoutesDictionary.TryGetValue(key, out var setNodeRouteData))
             {
-                var nodeRouteData = getNodeRouteData();
-
                 values["path"] = path;
-                values["node"] = nodeRouteData.Node;
 
-                if (nodeRouteData.ControllerName != null)
-                {
-                    values["controller"] = nodeRouteData.ControllerName;
-                }
+                setNodeRouteData(values);
 
                 return true;
             }

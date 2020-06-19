@@ -3,7 +3,6 @@ using System.Web.Mvc;
 using System.Web.Routing;
 
 using App.Boilerplate.Core;
-using App.Boilerplate.Core.Models;
 using App.Boilerplate.Infrastructure;
 
 using CMS.AspNet.Platform;
@@ -12,8 +11,10 @@ using Owin;
 
 namespace App.Boilerplate.Mvc
 {
-    public class KenticoMvcApplication : HttpApplication
+    public abstract class KenticoMvcApplication : HttpApplication
     {
+        protected abstract (string, string) ErrorControllerAction { get; }
+
         protected void Application_Start()
         {
         }
@@ -25,14 +26,14 @@ namespace App.Boilerplate.Mvc
             if (Context.IsCustomErrorEnabled)
             {
                 var error = Server.GetLastError();
-                var controllerName = "Error";
-
                 Context.ClearError();
 
-                var routeData = new RouteData();
-                routeData.Values.Add("controller", controllerName);
-                routeData.Values.Add("action", "Index");
-                routeData.Values.Add("exception", error);
+                var (controllerName, action) = ErrorControllerAction;
+                var routeData = Context.Request.RequestContext.RouteData;
+
+                routeData.Values["controller"] = controllerName;
+                routeData.Values["action"] = action;
+                routeData.Values["exception"] = error;
 
                 var requestContext = new RequestContext(new HttpContextWrapper(Context), routeData);
                 var controllerFactory = ControllerBuilder.Current.GetControllerFactory();
@@ -45,8 +46,7 @@ namespace App.Boilerplate.Mvc
         protected void Configure(IAppBuilder app, ConfigureOptions configureOptions = null)
         {
             new Startup(configureOptions)
-                .Configure(GetType(), app)
-                .AddInfrastructure();
+                .Configure(GetType(), app);
         }
 
         protected static string ControllerName<T>()

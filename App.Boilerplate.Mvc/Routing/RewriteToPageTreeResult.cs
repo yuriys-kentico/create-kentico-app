@@ -14,37 +14,32 @@ namespace App.Boilerplate.Mvc
 
         public RewriteToPageTreeResult(string path)
         {
-            this.path = path;
+            this.path = $"/{path.TrimStart('/')}".ToLower();
             pageTreeRoutesRepository = DependencyResolver.Current.GetService<IPageTreeRoutesRepository>();
             siteContext = DependencyResolver.Current.GetService<ISiteContext>();
         }
 
         public override void ExecuteResult(ControllerContext context)
         {
-            var routeData = new RouteData();
-            routeData.Values.Add("controller", "Basic");
-            routeData.Values.Add("action", "Index");
+            var routeData = context.RouteData;
 
-            var key = $"{siteContext.SiteId}|/{path.TrimStart('/').ToLower()}";
+            routeData.Values["controller"] = "Basic";
+            routeData.Values["action"] = "Index";
 
-            if (pageTreeRoutesRepository.RoutesDictionary.TryGetValue(key, out var getNodeRouteData))
+            var key = $"{siteContext.SiteId}|{path}";
+
+            if (pageTreeRoutesRepository.RoutesDictionary.TryGetValue(key, out var setNodeRouteData))
             {
-                var nodeRouteData = getNodeRouteData();
-
                 routeData.Values["path"] = path;
-                routeData.Values["node"] = nodeRouteData.Node;
 
-                if (nodeRouteData.ControllerName != null)
-                {
-                    routeData.Values["controller"] = nodeRouteData.ControllerName;
-                }
+                setNodeRouteData(routeData.Values);
             }
 
             var requestContext = new RequestContext(context.HttpContext, routeData);
             var controllerFactory = ControllerBuilder.Current.GetControllerFactory();
 
-            var errorController = controllerFactory.CreateController(requestContext, routeData.Values["controller"] as string);
-            errorController.Execute(requestContext);
+            var controller = controllerFactory.CreateController(requestContext, routeData.Values["controller"] as string);
+            controller.Execute(requestContext);
         }
     }
 }

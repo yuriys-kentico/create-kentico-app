@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web.Routing;
 
-using App.Boilerplate.Core.Models;
 using App.Boilerplate.Core.Routing;
 
 using CMS.DocumentEngine;
@@ -14,8 +14,9 @@ namespace App.Boilerplate.Infrastructure.Routing
     internal class PageTreeRoutesRepository : IPageTreeRoutesRepository
     {
         private readonly IEnumerable<IPageTreeController> pageTreeControllers;
+        private readonly IPageTreeModelService pageTreeModelService;
 
-        public IDictionary<string, Func<NodeRouteData>> RoutesDictionary =>
+        public IDictionary<string, Action<RouteValueDictionary>> RoutesDictionary =>
             CacheHelper.Cache(cacheSettings =>
                 {
                     if (cacheSettings.Cached)
@@ -24,35 +25,42 @@ namespace App.Boilerplate.Infrastructure.Routing
                     }
 
                     return DocumentHelper.GetDocuments()
-                    .Columns(
-                        nameof(TreeNode.NodeIsContentOnly),
-                        nameof(DocumentNodeDataInfo.NodeID),
-                        nameof(DocumentNodeDataInfo.NodeSiteID),
-                        nameof(DocumentNodeDataInfo.NodeClassID),
-                        nameof(DocumentCultureDataInfo.DocumentID),
-                        nameof(DocumentCultureDataInfo.DocumentForeignKeyValue),
-                        nameof(DocumentCultureDataInfo.DocumentPageTemplateConfiguration),
-                        nameof(DocumentCultureDataInfo.DocumentNamePath)
-                        )
-                    .LatestVersion()
-                    .Select(node => Tuple.Create(GetNodeRoute(node), node))
-                    .ToDictionary(
-                        nodeData => $"{nodeData.Item2.NodeSiteID}|{nodeData.Item1}".ToLower(),
-                        nodeData => GetGetNodeRouteData(nodeData.Item1, nodeData.Item2)
-                        );
+                        .Columns(
+                            nameof(TreeNode.NodeIsContentOnly),
+                            nameof(DocumentNodeDataInfo.NodeID),
+                            nameof(DocumentNodeDataInfo.NodeSiteID),
+                            nameof(DocumentNodeDataInfo.NodeClassID),
+                            nameof(DocumentNodeDataInfo.NodeAliasPath),
+                            nameof(DocumentCultureDataInfo.DocumentID),
+                            nameof(DocumentCultureDataInfo.DocumentCulture),
+                            nameof(DocumentCultureDataInfo.DocumentForeignKeyValue),
+                            nameof(DocumentCultureDataInfo.DocumentPageTemplateConfiguration),
+                            nameof(DocumentCultureDataInfo.DocumentNamePath)
+                            )
+                        .LatestVersion()
+                        .WhereTrue(nameof(TreeNode.NodeIsContentOnly))
+                        .Select(node => Tuple.Create(GetNodeRoute(node), node))
+                        .ToDictionary(
+                            nodeData => $"{nodeData.Item2.NodeSiteID}|{nodeData.Item1}".ToLower(),
+                            nodeData => GetSetNodeRouteData(nodeData.Item1, nodeData.Item2)
+                            );
                 },
                 new CacheSettings(60 * 24, $"{typeof(PageTreeRoutesRepository).FullName}|{nameof(RoutesDictionary)}")
             );
 
-        public PageTreeRoutesRepository(IEnumerable<IPageTreeController> pageTreeControllers)
+        public PageTreeRoutesRepository(
+            IEnumerable<IPageTreeController> pageTreeControllers,
+            IPageTreeModelService pageTreeModelService
+            )
         {
             this.pageTreeControllers = pageTreeControllers;
+            this.pageTreeModelService = pageTreeModelService;
         }
 
         private static string GetNodeRoute(TreeNode node) => DocumentURLProvider.GetUrl(node).TrimStart('~');
 
-        private Func<NodeRouteData> GetGetNodeRouteData(string nodeRoute, TreeNode node) =>
-            () => CacheHelper.Cache(cacheSettings =>
+        private Action<RouteValueDictionary> GetSetNodeRouteData(string nodeRoute, TreeNode node) =>
+            CacheHelper.Cache<Action<RouteValueDictionary>>(cacheSettings =>
                 {
                     node.MakeComplete(true);
 
@@ -69,14 +77,19 @@ namespace App.Boilerplate.Infrastructure.Routing
                         cacheSettings.CacheDependency = CacheHelper.GetCacheDependency($"cms.node|{node.NodeID}");
                     }
 
-                    return new NodeRouteData
+                    return (RouteValueDictionary values) =>
                     {
-                        Id = node.DocumentID,
-                        Type = node.NodeClassName,
-                        ControllerName = controllerType?.Name.Replace("Controller", string.Empty),
-                        Node = modelType != null && modelType != typeof(TreeNode)
-                            ? Activator.CreateInstance(modelType, new[] { node })
-                            : node
+                        if (controllerType != null)
+                        {
+                            values["controller"] = controllerType.Name.Replace("Controller", string.Empty);
+                        }
+
+                        values["page"] = new Page(node);
+
+                        if (modelType != null && modelType != typeof(Page))
+                        {
+                            values["page"] = pageTreeModelService.GetModel(modelType, values);
+                        }
                     };
                 },
                 new CacheSettings(60 * 24, $"{typeof(PageTreeRoutesRepository).FullName}|{nameof(RoutesDictionary)}|{node.NodeSiteID}|{nodeRoute}")

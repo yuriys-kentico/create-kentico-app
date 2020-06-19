@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Web.Compilation;
 using System.Web.Mvc;
 
@@ -7,6 +6,7 @@ using App.Boilerplate.Core.Routing;
 
 using CMS.DocumentEngine;
 using CMS.DocumentEngine.Internal;
+
 using Kentico.PageBuilder.Web.Mvc;
 using Kentico.PageBuilder.Web.Mvc.PageTemplates;
 using Kentico.Web.Mvc;
@@ -15,18 +15,20 @@ namespace App.Boilerplate.Infrastructure.Routing
 {
     public sealed class BasicController : Controller
     {
-        [HttpGet]
-        public ActionResult Index(TreeNode node, string path)
-        {
-            if (node.GetValue(nameof(DocumentCultureDataInfo.DocumentPageTemplateConfiguration)) != null)
-            {
-                return new TemplateResult(node.DocumentID);
-            }
+        private readonly IPageTreeModelService pageTreeModelService;
 
+        public BasicController(IPageTreeModelService pageTreeModelService)
+        {
+            this.pageTreeModelService = pageTreeModelService;
+        }
+
+        [HttpGet]
+        public ActionResult Index(Page page, string path)
+        {
             var searchLocations = new[]
             {
-                $"~/Views{path}/Index.cshtml",
-                $"~/Views/{node.NodeClassName}/Index.cshtml"
+                $"~/Views{page.NodeAliasPath}/Index.cshtml",
+                $"~/Views/{page.NodeClassName}/Index.cshtml"
             };
 
             ViewEngineResult pageTreeViewResult = null;
@@ -41,23 +43,48 @@ namespace App.Boilerplate.Infrastructure.Routing
 
             if (pageTreeViewResult.View == null)
             {
+                if (page.GetValue(nameof(DocumentCultureDataInfo.DocumentPageTemplateConfiguration)) != null)
+                {
+                    return new TemplateResult(page.DocumentID);
+                }
+
                 throw new PageTreeRoutingException(
                     $"View for path '{path}' not found. Searched locations: {string.Join(", ", searchLocations.Select(searchLocation => $"'{searchLocation}'"))}."
                     );
             }
 
-            if (pageTreeViewResult.View is RazorView view)
+            var view = pageTreeViewResult.View as RazorView ?? TryGetFromGlimpseWrapper(pageTreeViewResult);
+
+            if (view == null)
             {
-                HttpContext.Kentico().PageBuilder().Initialize(node.DocumentID);
-
-                var viewModelType = BuildManager.GetCompiledType(view.ViewPath).BaseType.GetGenericArguments()[0];
-
-                return View(view, viewModelType != null && viewModelType != typeof(TreeNode)
-                            ? Activator.CreateInstance(viewModelType, new[] { node })
-                            : node);
+                throw new PageTreeRoutingException($"View at '{pageTreeViewResult.SearchedLocations.FirstOrDefault()}' is not a '{nameof(RazorView)}'.");
             }
 
-            throw new PageTreeRoutingException($"View at '{pageTreeViewResult.SearchedLocations.FirstOrDefault()}' is not a '{nameof(RazorView)}'.");
+            HttpContext.Kentico().PageBuilder().Initialize(page.DocumentID);
+
+            var viewModelType = BuildManager.GetCompiledType(view.ViewPath).BaseType.GetGenericArguments()[0];
+
+            if (viewModelType == null)
+            {
+                return View(view);
+            }
+
+            return View(view, viewModelType == typeof(TreeNode)
+                        ? page
+                        : pageTreeModelService.GetModel(viewModelType, RouteData.Values));
+        }
+
+        private static RazorView TryGetFromGlimpseWrapper(ViewEngineResult pageTreeViewResult)
+        {
+            try
+            {
+                return ((dynamic)pageTreeViewResult.View).GetWrappedObject();
+            }
+            catch
+            {
+            }
+
+            return null;
         }
     }
 }

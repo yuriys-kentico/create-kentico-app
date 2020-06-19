@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-
-using App.Boilerplate.Core.Models;
+using System.Web.Routing;
 
 namespace App.Boilerplate.Core.Routing
 {
     public interface IPageTreeRoutesRepository
     {
-        IDictionary<string, Func<NodeRouteData>> RoutesDictionary { get; }
+        IDictionary<string, Action<RouteValueDictionary>> RoutesDictionary { get; }
     }
 }
