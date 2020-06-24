@@ -101,7 +101,7 @@ namespace App.Install.Tasks
             {
                 installDownloadPath = Path.GetTempFileName();
 
-                await DownloadFile(httpClient, versionUri, installDownloadPath, output, string.Format(terms.DownloadingInstaller, settings.Version));
+                await DownloadFile(httpClient, versionUri, installDownloadPath, output, string.Format(terms.DownloadingInstaller, settings.Version.Major));
                 await cache.SetString(versionUri, installDownloadPath);
 
                 output.Display(terms.DownloadComplete);

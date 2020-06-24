@@ -42,7 +42,7 @@
 
         public string UsingLatestVersion => "Using latest version.";
 
-        public string DownloadingInstaller => "Downloading installer for {0}...";
+        public string DownloadingInstaller => "Downloading installer for version {0}...";
 
         public string DownloadComplete => "Download complete!";
 
