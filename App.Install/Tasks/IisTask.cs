@@ -53,11 +53,16 @@ namespace App.Install.Tasks
             store.Open(OpenFlags.ReadWrite | OpenFlags.OpenExistingOnly);
 
             X509Certificate2 certificate;
+            X509Certificate2Collection? filteredCertificates = null;
 
             var certificateThumbprint = await cache.GetString(CertificateCacheKey);
-            var filteredCertificates = store.Certificates.Find(X509FindType.FindByThumbprint, certificateThumbprint, false);
 
-            if (certificateThumbprint != null && filteredCertificates.Count > 0)
+            if (certificateThumbprint != null)
+            {
+                filteredCertificates = store.Certificates.Find(X509FindType.FindByThumbprint, certificateThumbprint, false);
+            }
+
+            if (filteredCertificates?.Count > 0)
             {
                 output.Display(terms.SkippingCreatingCertificate);
 
