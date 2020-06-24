@@ -25,41 +25,41 @@ namespace App.Infrastructure.Services
     public class NugetService : INugetService
     {
         private readonly Core.Models.Settings settings;
-        private Settings? nugetSettings;
-        private SourceRepositoryProvider? sourceRepositoryProvider;
         private NuGetPackageManager? packageManager;
-        private PackagesConfigNuGetProject? project;
-        private readonly EmptyNuGetProjectContext projectContext;
-
-        public string PackagesFolderPath => Path.Combine(
-            settings.Path ?? throw new ArgumentNullException(nameof(settings.Path))
-            , "packages"
-            );
-
-        public Settings NugetSettings
-        {
-            get => nugetSettings ??= new Settings(settings.Path);
-        }
-
-        public SourceRepositoryProvider SourceRepositoryProvider
-        {
-            get => sourceRepositoryProvider ??= new SourceRepositoryProvider(
-                        new PackageSourceProvider(nugetSettings),
-                        FactoryExtensionsV3.GetCoreV3(Repository.Provider)
-                        );
-        }
+        private SourceRepositoryProvider? sourceRepositoryProvider;
+        private Settings? nugetSettings;
+        private EmptyNuGetProjectContext? projectContext;
 
         public NuGetPackageManager PackageManager
         {
             get => packageManager ??= new NuGetPackageManager(
                 SourceRepositoryProvider,
                 NugetSettings,
-                PackagesFolderPath);
+                PackagesFolderPath
+                );
         }
+
+        public SourceRepositoryProvider SourceRepositoryProvider
+        {
+            get => sourceRepositoryProvider ??= new SourceRepositoryProvider(
+                new PackageSourceProvider(NugetSettings),
+                FactoryExtensionsV3.GetCoreV3(Repository.Provider)
+                );
+        }
+
+        public Settings NugetSettings
+        {
+            get => nugetSettings ??= new Settings(settings.Path ?? throw new ArgumentNullException(nameof(settings.Path)));
+        }
+
+        public string PackagesFolderPath => Path.Combine(
+            settings.Path ?? throw new ArgumentNullException(nameof(settings.Path)),
+            "packages"
+            );
 
         public PackagesConfigNuGetProject Project
         {
-            get => project ??= new PackagesConfigNuGetProject(
+            get => new PackagesConfigNuGetProject(
                 Path.Combine(
                     settings.Path ?? throw new ArgumentNullException(nameof(settings.Path)),
                     settings.Name ?? throw new ArgumentNullException(nameof(settings.Name))
@@ -71,19 +71,23 @@ namespace App.Infrastructure.Services
                 );
         }
 
-        public NugetService(Core.Models.Settings settings)
+        public EmptyNuGetProjectContext ProjectContext
         {
-            this.settings = settings;
-
-            projectContext = new EmptyNuGetProjectContext
+            get => projectContext ??= new EmptyNuGetProjectContext
             {
                 PackageExtractionContext = new PackageExtractionContext(
                     PackageSaveMode.Defaultv2,
                     PackageExtractionBehavior.XmlDocFileSaveMode,
-                    ClientPolicyContext.GetClientPolicy(nugetSettings, NullLogger.Instance),
+                    ClientPolicyContext.GetClientPolicy(NugetSettings, NullLogger.Instance),
                     NullLogger.Instance
                     )
             };
+        }
+
+        public NugetService(Core.Models.Settings settings)
+        {
+            this.settings = settings;
+
         }
 
         public async Task InstallPackage(string id, string version)
@@ -97,7 +101,7 @@ namespace App.Infrastructure.Services
                     includeUnlisted: false,
                     VersionConstraints.None
                 ),
-                projectContext,
+                ProjectContext,
                 SourceRepositoryProvider.GetRepositories(),
                 Array.Empty<SourceRepository>(),
                 CancellationToken.None
