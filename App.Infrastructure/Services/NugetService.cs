@@ -87,7 +87,6 @@ namespace App.Infrastructure.Services
         public NugetService(Core.Models.Settings settings)
         {
             this.settings = settings;
-
         }
 
         public async Task InstallPackage(string id, string version)

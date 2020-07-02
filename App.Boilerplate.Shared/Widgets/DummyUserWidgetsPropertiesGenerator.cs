@@ -13,6 +13,11 @@ namespace App.Boilerplate.Shared.Widgets
 {
     internal class DummyUserWidgetsPropertiesGenerator : IUserWidgetsPropertiesGenerator
     {
+        public void ReloadDynamicAssembly()
+        {
+            throw new NotImplementedException("This interface must be depended on in an MVC application.");
+        }
+
         public Type GetPropertiesType(string identifier, IList<UserWidgetProperty> properties)
         {
             throw new NotImplementedException("This interface must be depended on in an MVC application.");

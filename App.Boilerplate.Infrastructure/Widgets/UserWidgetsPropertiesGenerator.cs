@@ -19,23 +19,18 @@ namespace App.Boilerplate.Infrastructure.Widgets
 {
     internal class UserWidgetsPropertiesGenerator : IUserWidgetsPropertiesGenerator
     {
-        private readonly AssemblyName dynamicAssemblyName;
-        private readonly ModuleBuilder dynamicModule;
+        private ModuleBuilder module;
 
-        public UserWidgetsPropertiesGenerator()
+        public void ReloadDynamicAssembly()
         {
-            dynamicAssemblyName = new AssemblyName("UserWidgets");
-
-            dynamicModule = AppDomain.CurrentDomain
-                .DefineDynamicAssembly(dynamicAssemblyName, AssemblyBuilderAccess.Run)
-                .DefineDynamicModule("UserWidgetsModule");
+            module = AppDomain.CurrentDomain
+                .DefineDynamicAssembly(new AssemblyName("UserWidgets"), AssemblyBuilderAccess.Run)
+                .DefineDynamicModule("UserWidgetsModule" + Guid.NewGuid().ToString());
         }
 
         public Type GetPropertiesType(string identifier, IList<UserWidgetProperty> properties)
         {
-            var dynamicType = dynamicModule.DefineType(identifier, TypeAttributes.Public);
-
-            dynamicType.AddInterfaceImplementation(typeof(IWidgetProperties));
+            var dynamicType = module.DefineType(identifier, TypeAttributes.Public, null, new[] { typeof(IWidgetProperties) });
 
             foreach (var userWidgetProperty in properties)
             {

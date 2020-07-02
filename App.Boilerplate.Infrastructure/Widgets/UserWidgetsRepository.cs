@@ -8,8 +8,6 @@ using CMS;
 using CMS.Core;
 using CMS.Helpers;
 
-using Kentico.Forms.Web.Mvc;
-
 using Newtonsoft.Json;
 
 [assembly: RegisterImplementation(typeof(IUserWidgetsRepository), typeof(UserWidgetsRepository), Priority = RegistrationPriority.Default)]
@@ -31,6 +29,8 @@ namespace App.Boilerplate.Infrastructure.Widgets
 
                 var userWidgetInfos = UserWidgetInfoProvider.GetUserWidgets();
 
+                userWidgetsPropertiesGenerator.ReloadDynamicAssembly();
+
                 foreach (var userWidgetInfo in userWidgetInfos)
                 {
                     dictionary.Add(
@@ -51,7 +51,7 @@ namespace App.Boilerplate.Infrastructure.Widgets
 
                 if (cacheSettings.Cached)
                 {
-                    cacheSettings.CacheDependency = CacheHelper.GetCacheDependency($"App.Boilerplate.UserWidget|all");
+                    cacheSettings.CacheDependency = CacheHelper.GetCacheDependency(UserWidgetInfo.OBJECT_TYPE + "|all");
                 }
 
                 return dictionary;
