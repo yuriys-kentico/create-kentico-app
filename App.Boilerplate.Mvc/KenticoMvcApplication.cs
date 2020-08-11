@@ -49,7 +49,7 @@ namespace App.Boilerplate.Mvc
                 .Configure(GetType(), app);
         }
 
-        protected static string ControllerName<T>()
+        protected static string ControllerName<T>() where T : Controller
         {
             var name = typeof(T).Name;
             return name.Substring(0, name.LastIndexOf("Controller"));

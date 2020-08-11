@@ -36,8 +36,8 @@ namespace App.Infrastructure.Tasks
         public async Task Run()
         {
             output.Display(terms.CreateKenticoAppVersion + Assembly.GetEntryAssembly()?
-                               .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                               .InformationalVersion);
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion);
 
             if (settings.Help ?? false)
             {
