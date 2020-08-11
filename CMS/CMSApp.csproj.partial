@@ -1,0 +1,20 @@
+<ItemGroup>
+  <Content Include="App_Data\CMSModules\App.Boilerplate\UI\Grids\UI.Widgets.xml" />
+  <Content Include="CMSModules\App.Boilerplate\FormControls\PropertiesEditor.ascx" />
+  <Content Include="CMSModules\App.Boilerplate\FormControls\IconSelector.ascx" />
+  <Compile Include="CMSModules\App.Boilerplate\AdminModule.cs" />
+  <Compile Include="CMSModules\App.Boilerplate\FormControls\PropertiesEditor.ascx.cs">
+    <DependentUpon>PropertiesEditor.ascx</DependentUpon>
+    <SubType>ASPXCodeBehind</SubType>
+  </Compile>
+  <Compile Include="CMSModules\App.Boilerplate\FormControls\PropertiesEditor.ascx.designer.cs">
+    <DependentUpon>PropertiesEditor.ascx</DependentUpon>
+  </Compile>
+  <Compile Include="CMSModules\App.Boilerplate\FormControls\IconSelector.ascx.cs">
+    <DependentUpon>IconSelector.ascx</DependentUpon>
+    <SubType>ASPXCodeBehind</SubType>
+  </Compile>
+  <Compile Include="CMSModules\App.Boilerplate\FormControls\IconSelector.ascx.designer.cs">
+    <DependentUpon>IconSelector.ascx</DependentUpon>
+  </Compile>
+</ItemGroup>
