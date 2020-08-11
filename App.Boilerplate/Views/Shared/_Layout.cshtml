@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  @Styles.Render("~/css")
+  @if (Context.Kentico().PageBuilder().PageIdentifier > 0)
+  {
+    @Html.Kentico().PageBuilderStyles()
+    @Html.Kentico().ABTestLoggerScript()
+  }
+</head>
+<body>
+  <div class="container body-content">
+    @RenderBody()
+  </div>
+  @if (Context.Kentico().PageBuilder().PageIdentifier > 0)
+  {
+    @Html.Kentico().PageBuilderScripts()
+    @Html.Kentico().ActivityLoggingScript()
+  }
+  @RenderSection("scripts", required: false)
+</body>
+</html>
