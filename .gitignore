@@ -5,9 +5,6 @@
 *.userosscache
 *.sln.docstates
 
-# Mono auto generated files
-mono_crash.*
-
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -24,8 +21,6 @@ bld/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
-# Uncomment if you have tasks that create the project's static files in wwwroot
-#wwwroot/
 
 # .NET Core
 project.lock.json
@@ -61,8 +56,6 @@ artifacts/
 *.svclog
 *.scc
 
-# Click-Once directory
-publish/
 
 # Publish Web Output
 *.[Pp]ublish.xml
@@ -102,6 +95,8 @@ ClientBin/
 ~$*
 *~
 *.publishsettings
+node_modules
+launchSettings.json
 
 # CMS root files
 GlobalAssemblyInfo.cs
