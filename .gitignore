@@ -56,7 +56,6 @@ artifacts/
 *.svclog
 *.scc
 
-
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
@@ -64,11 +63,6 @@ artifacts/
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
 *.publishproj
-
-# Microsoft Azure Web App publish settings. Comment the next line if you want to
-# checkin your Azure Web App publish settings, but sensitive information contained
-# in these scripts will be unencrypted
-PublishScripts/
 
 # NuGet Packages
 *.nupkg
@@ -97,6 +91,7 @@ ClientBin/
 *.publishsettings
 node_modules
 launchSettings.json
+*.zip
 
 # CMS root files
 GlobalAssemblyInfo.cs
