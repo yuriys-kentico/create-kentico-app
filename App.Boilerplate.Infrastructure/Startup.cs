@@ -55,7 +55,6 @@ namespace App.Boilerplate.Infrastructure
             ConfigureStaticFiles(app);
             ConfigureServices(appType);
             ConfigureFeatures();
-            ConfigureServices();
             ConfigureBundles();
             ConfigureRoutes();
             ConfigureWidgets();
@@ -96,27 +95,7 @@ namespace App.Boilerplate.Infrastructure
             {
                 Services.Scan(ConfigureOptions.ConfigureServices);
             }
-        }
 
-        private static void ConfigureFeatures()
-        {
-            var builder = ApplicationBuilder.Current;
-
-            builder.UsePreview();
-            builder.UsePageBuilder();
-            builder.UseDataAnnotationsLocalization();
-            builder.UsePageRouting(new PageRoutingOptions
-            {
-                EnableAlternativeUrls = true
-            });
-            builder.UseABTesting();
-            builder.UseActivityTracking();
-            builder.UseCampaignLogger();
-            builder.UseEmailTracking(new EmailTrackingOptions());
-        }
-
-        private void ConfigureServices()
-        {
             Services.Scan(source => source
                 .FromCallingAssembly()
                     .AddClasses(classes => classes.AssignableTo<IController>())
@@ -139,6 +118,23 @@ namespace App.Boilerplate.Infrastructure
             containerBuilder.RegisterSource(new ServicesRegistrations());
 
             DependencyResolver.SetResolver(new AutofacDependencyResolver(containerBuilder.Build()));
+        }
+
+        private static void ConfigureFeatures()
+        {
+            var builder = ApplicationBuilder.Current;
+
+            builder.UsePreview();
+            builder.UsePageBuilder();
+            builder.UseDataAnnotationsLocalization();
+            builder.UsePageRouting(new PageRoutingOptions
+            {
+                EnableAlternativeUrls = true
+            });
+            builder.UseABTesting();
+            builder.UseActivityTracking();
+            builder.UseCampaignLogger();
+            builder.UseEmailTracking(new EmailTrackingOptions());
         }
 
         private void ConfigureBundles()

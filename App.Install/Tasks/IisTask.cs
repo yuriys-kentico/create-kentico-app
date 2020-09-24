@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
@@ -7,46 +6,42 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 using App.Core;
-using App.Core.Models;
+using App.Core.Context;
 using App.Core.Services;
 
 using Microsoft.Web.Administration;
 
+using static App.Core.CoreHelper;
 using static App.Install.InstallHelper;
 
 namespace App.Install.Tasks
 {
     public class IisTask : IIisTask
     {
-        private readonly Settings settings;
-        private readonly Terms terms;
+        private readonly IAppContext appContext;
         private readonly IOutputService output;
         private readonly ICacheService cache;
-        private readonly IKenticoPathService kenticoPath;
-
-        public bool Mvc { get; set; }
 
         public IisTask(
-            Settings settings,
-            Terms terms,
+            IAppContext appContext,
             ServiceResolver services
             )
         {
-            this.settings = settings;
-            this.terms = terms;
+            this.appContext = appContext;
             output = services.OutputService();
             cache = services.CacheService();
-            kenticoPath = services.KenticoPathService();
         }
 
         public async Task Run()
         {
+            var settings = appContext.Settings;
+            var terms = appContext.Terms;
+
             output.Display(terms.IisTaskStart);
 
             using var iisManager = new ServerManager();
 
             settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
-            settings.Path = settings.Path ?? throw new ArgumentNullException(nameof(settings.Path));
             settings.Version = settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
 
             var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
@@ -88,7 +83,7 @@ namespace App.Install.Tasks
             var adminSite = iisManager.Sites.Add(
                 siteName + adminSuffix,
                 settings.AdminDomain + ":443:",
-                Path.Combine(settings.Path, "CMS"),
+                settings.AdminPath,
                 certificate.GetCertHash(),
                 store.Name,
                 SslFlags.None
@@ -100,7 +95,7 @@ namespace App.Install.Tasks
 
             adminSite.ApplicationDefaults.ApplicationPoolName = appPool.Name;
 
-            if (Mvc)
+            if (appContext.Mvc)
             {
                 settings.AppDomain = settings.AppDomain
                     ?? throw new ArgumentNullException(
@@ -111,7 +106,7 @@ namespace App.Install.Tasks
                 var appSite = iisManager.Sites.Add(
                     siteName,
                     settings.AppDomain + ":443:",
-                    Path.Combine(settings.Path, settings.Name),
+                    settings.AppPath,
                     certificate.GetCertHash(),
                     store.Name,
                     SslFlags.None
@@ -171,7 +166,7 @@ namespace App.Install.Tasks
 
             certificate.FriendlyName = name;
 
-            var password = $"{Environment.MachineName}_{settings.Name}";
+            var password = $"{Environment.MachineName}_{appContext.Settings.Name}";
 
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx, password), password, X509KeyStorageFlags.MachineKeySet);
         }

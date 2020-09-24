@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -12,11 +10,8 @@ using Microsoft.Web.Administration;
 
 namespace App.Install
 {
-    internal static class InstallHelper
+    public static class InstallHelper
     {
-        private static readonly Random random = new Random();
-        private static readonly IDictionary<int, string> randomStringCache = new Dictionary<int, string>();
-
         public static string HotfixDownloadCacheKeySuffix => "_download";
 
         public static string HotfixUnpackCacheKeySuffix => "_unpack";
@@ -73,27 +68,6 @@ namespace App.Install
 
                 return ipAddressFragment + index;
             }
-        }
-
-        internal static string GetRandomString(int length)
-        {
-            if (randomStringCache.TryGetValue(length, out var result))
-            {
-                return result;
-            }
-
-            const string validCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-
-            result = string.Empty;
-
-            for (int i = 0; i < length; i++)
-            {
-                result += validCharacters[random.Next(0, validCharacters.Length - 1)];
-            }
-
-            randomStringCache.Add(length, result);
-
-            return result;
         }
     }
 }

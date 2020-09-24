@@ -8,12 +8,12 @@ namespace App.Infrastructure.Services
     {
         private readonly IOutputService output;
 
-        private Process Process { get; set; } = new Process();
-
         public ProcessService(ServiceResolver services)
         {
             output = services.OutputService();
         }
+
+        private Process Process { get; set; } = new Process();
 
         public IProcessService FromPath(string processPath)
         {

@@ -1,43 +1,43 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 using App.Core;
+using App.Core.Context;
 using App.Core.Models;
 using App.Core.Services;
 using App.Core.Tasks;
 using App.Infrastructure.Models;
 
+using static App.Core.CoreHelper;
+
 namespace App.Infrastructure.Tasks
 {
     public class SetupTask : ISetupTask
     {
-        private readonly Settings settings;
-        private readonly Terms terms;
+        private readonly IAppContext appContext;
         private readonly IOutputService output;
-        private readonly IKenticoPathService kenticoPath;
         private readonly TaskResolver tasks;
 
         public SetupTask(
-            Settings settings,
-            Terms terms,
+            IAppContext appContext,
             ServiceResolver services,
             TaskResolver tasks
             )
         {
-            this.settings = settings;
-            this.terms = terms;
+            this.appContext = appContext;
             output = services.OutputService();
-            kenticoPath = services.KenticoPathService();
             this.tasks = tasks;
         }
 
         public async Task Run()
         {
-            output.Display(terms.CreateKenticoAppVersion + Assembly.GetEntryAssembly()?
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion);
+            var terms = appContext.Terms;
+            var settings = appContext.Settings;
+
+            output.Display(terms.CreateKenticoAppVersion + appContext.Version);
 
             if (settings.Help ?? false)
             {
@@ -89,23 +89,26 @@ namespace App.Infrastructure.Tasks
             output.Display(terms.Setup);
 
             settings.Name = settings.Name ?? throw new ArgumentNullException(nameof(settings.Name));
-            settings.Path ??= kenticoPath.GetSolutionPath();
+            settings.Path ??= Path.Combine(@"C:\inetpub\wwwroot\", settings.Name ?? throw new ArgumentNullException(nameof(settings.Name)));
+            settings.Path = EnsureValidAppPath(settings.Path);
 
             var installTask = tasks.InstallTask();
             var iisSiteTask = tasks.IisTask();
             var databaseTask = tasks.DatabaseTask();
             var hotfixTask = tasks.HotfixTask();
 
-            if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
+            if (settings.AppTemplate == "Boilerplate")
             {
-                installTask.Template = true;
+                appContext.Boilerplate = true;
+                appContext.Mvc = true;
+            }
+            else if (!string.IsNullOrWhiteSpace(settings.AppTemplate))
+            {
+                appContext.Template = true;
 
                 if (settings.AppTemplate.EndsWith("Mvc"))
                 {
-                    installTask.Mvc = true;
-                    iisSiteTask.Mvc = true;
-                    databaseTask.Mvc = true;
-                    hotfixTask.Mvc = true;
+                    appContext.Mvc = true;
                 }
             }
 
@@ -117,7 +120,7 @@ namespace App.Infrastructure.Tasks
                             $"Must be set if '{nameof(settings.Source)}' is 'true'."
                         );
 
-                installTask.Source = true;
+                appContext.Source = true;
 
                 await installTask.Run();
                 await iisSiteTask.Run();
@@ -125,7 +128,7 @@ namespace App.Infrastructure.Tasks
                 output.Display(terms.InstallComplete);
                 output.Display(string.Format(terms.SolutionPath, settings.Path));
                 output.Display(string.Format(terms.AdminPath, settings.AdminDomain));
-                output.Display(string.Format(terms.SourceHotfixStep, kenticoPath.GetHotfixUri()));
+                output.Display(string.Format(terms.SourceHotfixStep, settings.HotfixUri));
                 output.Display(terms.AdditionalSourceSteps);
 
                 return;
@@ -145,10 +148,21 @@ namespace App.Infrastructure.Tasks
             output.Display(string.Format(terms.SolutionPath, settings.Path));
             output.Display(string.Format(terms.AdminPath, settings.AdminDomain));
 
-            if (installTask.Mvc)
+            if (appContext.Mvc)
             {
                 output.Display(string.Format(terms.AppPath, settings.AppDomain));
             }
+        }
+
+        private string EnsureValidAppPath(string appPath)
+        {
+            if (Directory.Exists(appPath) && Directory.EnumerateFileSystemEntries(appPath).Any())
+            {
+                appPath += $"_{GetRandomString(10)}";
+            }
+
+            Directory.CreateDirectory(appPath);
+            return appPath;
         }
     }
 }

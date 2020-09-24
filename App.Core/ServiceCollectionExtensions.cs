@@ -12,8 +12,9 @@ namespace App.Core
     {
         public static IServiceCollection AddCore(this IServiceCollection serviceCollection, string[] args)
         {
-            var aliasMappings = typeof(Settings)
+            var aliasMappings = typeof(BaseSettings)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.GetCustomAttribute<AliasesAttribute>() != null)
                 .SelectMany(property => property.GetCustomAttribute<AliasesAttribute>()?
                     .Aliases
                     .Select(alias => (alias, property.Name)))
@@ -23,12 +24,12 @@ namespace App.Core
                 .AddCommandLine(args, aliasMappings)
                 .Build();
 
-            var settings = new Settings();
+            var settings = new BaseSettings();
 
             ConfigurationBinder.Bind(configuration, settings);
 
             serviceCollection
-                .AddSingleton(settings)
+                .AddSingleton(new Settings(settings))
                 .AddSingleton(new Terms())
                 .AddSingleton(serviceProvider => new Services.ServiceResolver(serviceProvider))
                 .AddSingleton(serviceProvider => new Tasks.TaskResolver(serviceProvider));

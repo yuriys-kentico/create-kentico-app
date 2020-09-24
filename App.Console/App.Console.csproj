@@ -1,21 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Nullable>enable</Nullable>
-    <Version>0.1.3</Version>
-    <Authors>Yuriy Sountsov</Authors>
+    <Version>0.1.5</Version>
     <Product>create-kentico-app</Product>
-    <PackageId>create-kentico-app</PackageId>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>create-kentico-app</ToolCommandName>
+    <Authors>Yuriy Sountsov</Authors>
+    <PackageId>create-kentico-app.Console</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageOutputPath>./</PackageOutputPath>
+    <PackAsTool>true</PackAsTool>
+    <OutputType>Exe</OutputType>
+    <ToolCommandName>create-kentico-app</ToolCommandName>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);BuildService</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.8" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy /y &quot;$(ProjectDir)..\App.Infrastructure.Services.BuildService\bin\$(ConfigurationName)\*&quot; &quot;$(OutDir)App.Infrastructure.Services.BuildService\&quot;" />
+    <Exec Command="xcopy /y &quot;$(ProjectDir)..\App.Infrastructure\nuget.exe&quot; &quot;$(OutDir)NuGetCLI\&quot;" />
   </Target>
 
   <Target Name="BuildService">

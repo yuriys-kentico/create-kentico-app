@@ -5,9 +5,6 @@ using App.Boilerplate.Mvc;
 
 using CMS;
 
-using Kentico.PageBuilder.Web.Mvc;
-using Kentico.PageBuilder.Web.Mvc.PageTemplates;
-
 using Microsoft.Owin;
 
 using Owin;

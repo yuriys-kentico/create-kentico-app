@@ -17,8 +17,6 @@ namespace App.Infrastructure.Services
     {
         private readonly QueryFactory database;
 
-        private Query QueryBuilder { get; set; } = new Query();
-
         public DatabaseService(Settings settings)
         {
             var connectionStringBuilder = new SqlConnectionStringBuilder
@@ -42,6 +40,8 @@ namespace App.Infrastructure.Services
 
             database = new QueryFactory(new SqlConnection(connectionStringBuilder.ConnectionString), new SqlServerCompiler());
         }
+
+        private Query QueryBuilder { get; set; } = new Query();
 
         public IDatabaseService Select(params string[] columns)
         {

@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 
 using App.Core;
-using App.Core.Models;
+using App.Core.Context;
 using App.Core.Services;
 
 using static App.Install.InstallHelper;
@@ -14,42 +14,35 @@ namespace App.Install.Tasks
 {
     public class HotfixTask : IHotfixTask
     {
-        private readonly Settings settings;
-        private readonly Terms terms;
+        private readonly IAppContext appContext;
         private readonly IOutputService output;
         private readonly ICacheService cache;
         private readonly IProcessService process;
-        private readonly IKenticoPathService kenticoPath;
-        private readonly INugetService nuget;
         private readonly HttpClient httpClient;
 
-        public bool Mvc { get; set; }
-
         public HotfixTask(
-            Settings settings,
-            Terms terms,
+            IAppContext appContext,
             ServiceResolver services,
             HttpClient httpClient
             )
         {
-            this.settings = settings;
-            this.terms = terms;
+            this.appContext = appContext;
             output = services.OutputService();
             cache = services.CacheService();
             process = services.ProcessService();
-            kenticoPath = services.KenticoPathService();
-            nuget = services.NugetService();
             this.httpClient = httpClient;
         }
 
         public async Task Run()
         {
+            var settings = appContext.Settings;
+            var terms = appContext.Terms;
+
             output.Display(terms.HotfixTaskStart);
 
             settings.Version ??= settings.Version ?? throw new ArgumentNullException(nameof(settings.Version));
-            settings.Path ??= settings.Path ?? throw new ArgumentNullException(nameof(settings.Path));
 
-            var hotfixUri = kenticoPath.GetHotfixUri();
+            var hotfixUri = settings.HotfixUri;
 
             var hotfixDownloadPath = await cache.GetString(hotfixUri + HotfixDownloadCacheKeySuffix);
 
@@ -106,27 +99,34 @@ namespace App.Install.Tasks
 
             if (hotfixProcess.ExitCode > 0) throw new Exception("Hotfix unpack process failed!");
 
-            if (Mvc && settings.Version.Major == 12 && settings.Version.Hotfix > 29)
-            {
-                output.Display(terms.UpdatingKenticoLibraries);
+            output.Display(terms.RebuildingSolution);
 
-                await nuget.InstallPackage("Kentico.Libraries", settings.Version.ToString());
-
-                output.Display(terms.RebuildingSolution);
-
-                var buildServicePath = Path.Combine(
+            var nugetServicePath = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!,
-                    "App.Infrastructure.Services.BuildService",
-                    "BuildService.exe"
+                    "NuGetCLI",
+                    "nuget.exe"
                     );
 
-                var buildService = process
-                    .FromPath(buildServicePath)
-                    .WithArguments(Path.Combine(settings.Path, $"{settings.Name}.sln"))
-                    .Run();
+            process
+                .FromPath(nugetServicePath)
+                .WithArguments($"restore {settings.BoilerplateSlnPath}")
+                .Run();
 
-                if (buildService.ExitCode != 0) throw new Exception("Build process failed!");
-            }
+            var buildServicePath = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!,
+                "App.Infrastructure.Services.BuildService",
+                "BuildService.exe"
+                );
+
+            var buildService = process
+                .FromPath(buildServicePath)
+                .WithArguments(settings.BoilerplateSlnPath)
+                .Run();
+
+            if (buildService.ExitCode != 0) throw new Exception("Build process failed!");
+
+            // Restore CI
+            // Run CI
         }
     }
 }

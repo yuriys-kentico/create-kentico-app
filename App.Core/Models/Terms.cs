@@ -48,6 +48,8 @@
 
         public string SkippingDownload => "Found existing file, skipping download.";
 
+        public string DownloadingBoilerplate => "Downloading boilerplate files...";
+
         public string BeginInstallOutput => "Showing output from installer...";
 
         public string BeginSourceInstallOutput => "Showing output from source code unpacker...";
@@ -67,8 +69,6 @@
         public string SkippingUnpackingHotfix => "Found existing files, skipping unpacking hotfix.";
 
         public string BeginHotfixOutput => "Showing output from hotfixer...";
-
-        public string UpdatingKenticoLibraries => "Updating Kentico.Libraries NuGet package...";
 
         public string RebuildingSolution => "Rebuilding solution...";
 

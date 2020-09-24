@@ -1,7 +1,9 @@
 ﻿using System.IO;
 
 using App.Core;
+using App.Core.Context;
 using App.Core.Services;
+using App.Infrastructure.Context;
 using App.Infrastructure.Services;
 using App.Infrastructure.Tasks;
 
@@ -16,12 +18,11 @@ namespace App.Infrastructure
         public static IServiceCollection AddInfrastucture(this IServiceCollection serviceCollection)
         {
             serviceCollection
+                .AddSingleton<IAppContext, AppContext>()
                 .AddSingleton<IOutputService, OutputService>()
                 .AddSingleton<ICacheService, CacheService>()
                 .AddTransient<IProcessService, ProcessService>()
                 .AddTransient<IDatabaseService, DatabaseService>()
-                .AddTransient<IKenticoPathService, KenticoPathService>()
-                .AddTransient<INugetService, NugetService>()
                 .AddSingleton<ISetupTask, SetupTask>()
                 .AddSqliteCache(options =>
                 {

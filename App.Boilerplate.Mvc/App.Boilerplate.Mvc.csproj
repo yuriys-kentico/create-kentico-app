@@ -1,12 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <LangVersion>8.0</LangVersion>
+    <Version>0.1.5</Version>
+    <Authors>Yuriy Sountsov</Authors>
+    <PackageId>create-kentico-app.Boilerplate.Mvc</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageOutputPath>./</PackageOutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="create-kentico-app.Boilerplate.Core" Version="0.1.5" />
+    <PackageReference Include="create-kentico-app.Boilerplate.Infrastructure" Version="0.1.5" />
+    <PackageReference Include="create-kentico-app.Boilerplate.Shared" Version="0.1.5" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\App.Boilerplate.Core\App.Boilerplate.Core.csproj" />
     <ProjectReference Include="..\App.Boilerplate.Infrastructure\App.Boilerplate.Infrastructure.csproj" />
+    <ProjectReference Include="..\App.Boilerplate.Shared\App.Boilerplate.Shared.csproj" />
   </ItemGroup>
 </Project>

@@ -25,9 +25,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Boilerplate.Infrastruct
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Boilerplate.Core", "App.Boilerplate.Core\App.Boilerplate.Core.csproj", "{DB19B244-52D3-4FEE-8447-15F74D4C7F6F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Boilerplate.Shared", "App.Boilerplate.Shared\App.Boilerplate.Shared.csproj", "{805D5F11-FFB8-44E7-A8C9-4F0DFF409909}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Boilerplate.Shared", "App.Boilerplate.Shared\App.Boilerplate.Shared.csproj", "{805D5F11-FFB8-44E7-A8C9-4F0DFF409909}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.Boilerplate.Mvc", "App.Boilerplate.Mvc\App.Boilerplate.Mvc.csproj", "{93A61F29-EAE5-43D7-9A50-70446300BA13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App.Boilerplate.Mvc", "App.Boilerplate.Mvc\App.Boilerplate.Mvc.csproj", "{93A61F29-EAE5-43D7-9A50-70446300BA13}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
